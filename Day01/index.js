@@ -1,9 +1,10 @@
-const { promisify } = require('util')
-const fs = require('fs')
+const B = require('bilby')
+const I = require('immutable')
 const R = require('ramda')
-const bilby = require('bilby')
-const { OrderedSet } = require('immutable')
-const readFile = promisify(fs.readFile)
+const util = require('util')
+const fs = require('fs')
+
+const readFile = util.promisify(fs.readFile)
 
 const part1 = frequencies => {
   const answer = R.sum(frequencies)
@@ -11,14 +12,15 @@ const part1 = frequencies => {
 }
 
 const part2 = frequencies => {
-  const loop = subtotals => {
-    const f = frequencies[subtotals.size % frequencies.length]
-    const prevSubtotal = subtotals.isEmpty() ? 0 : subtotals.last()
+  const numFrequencies = frequencies.length
+  const loop = (index, prevSubtotal, subtotals) => {
+    const f = frequencies[index % numFrequencies]
     const nextSubtotal = prevSubtotal + f
-    if (subtotals.has(nextSubtotal)) return bilby.done(nextSubtotal)
-    return bilby.cont(() => loop(subtotals.add(nextSubtotal)))
+    if (subtotals.has(nextSubtotal)) return B.done(nextSubtotal)
+    const newSubtotals = subtotals.add(nextSubtotal)
+    return B.cont(() => loop(index + 1, nextSubtotal, newSubtotals))
   }
-  const answer = bilby.trampoline(loop(OrderedSet()))
+  const answer = B.trampoline(loop(0, 0, I.Set()))
   console.log(`part 2 answer: ${answer}`)
 }
 
