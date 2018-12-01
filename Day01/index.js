@@ -9,15 +9,15 @@ const part1 = frequencies => {
 }
 
 const part2 = frequencies => {
-  const repeatedFrequencies = [].concat(...R.repeat(frequencies, 200))
-  const subtotals = R.scan((acc, f) => f + acc, 0, repeatedFrequencies)
-  const indices = R.range(0, subtotals.length)
-  const subtotalsWithIndices = R.zipWith(R.pair, subtotals, indices)
-  const groupedSubtotals = R.groupBy(([x]) => x, subtotalsWithIndices)
-  const filtered = R.values(groupedSubtotals).filter(vs => vs.length > 1)
-  const comparator = (vs1, vs2) => vs1[1][1] - vs2[1][1]
-  const sorted = R.sort(comparator, filtered)
-  console.log(`part 2 answer: ${sorted[0][0][0]}`)
+  let index = 0
+  let subtotal = 0
+  const subtotals = new Set()
+  for (;;) {
+    subtotal += frequencies[index++ % frequencies.length]
+    if (subtotals.has(subtotal)) break
+    subtotals.add(subtotal)
+  }
+  console.log(`part 2 answer: ${subtotal}`)
 }
 
 const main = async () => {
