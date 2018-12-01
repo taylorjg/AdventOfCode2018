@@ -2,22 +2,23 @@ const { promisify } = require('util')
 const fs = require('fs')
 const readFile = promisify(fs.readFile)
 const R = require('ramda')
+const bilby  =require('bilby')
 
 const part1 = frequencies => {
-  const total = R.sum(frequencies)
-  console.log(`part 1 answer: ${total}`)
+  const answer = R.sum(frequencies)
+  console.log(`part 1 answer: ${answer}`)
 }
 
 const part2 = frequencies => {
-  let index = 0
-  let subtotal = 0
-  const subtotals = new Set()
-  for (;;) {
-    subtotal += frequencies[index++ % frequencies.length]
-    if (subtotals.has(subtotal)) break
-    subtotals.add(subtotal)
+  const loop = (index, subtotal, subtotals) => {
+    const f = frequencies[index % frequencies.length]
+    const newSubtotal = subtotal + f
+    if (subtotals.has(newSubtotal)) return bilby.done(newSubtotal)
+    subtotals.add(newSubtotal)
+    return bilby.cont(() => loop(index + 1, newSubtotal, subtotals))
   }
-  console.log(`part 2 answer: ${subtotal}`)
+  const answer = bilby.trampoline(loop(0, 0, new Set()))
+  console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
