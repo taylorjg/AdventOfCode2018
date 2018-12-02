@@ -1,4 +1,3 @@
-const B = require('bilby')
 const I = require('immutable')
 const R = require('ramda')
 const util = require('util')
@@ -11,16 +10,24 @@ const part1 = frequencies => {
   console.log(`part 1 answer: ${answer}`)
 }
 
-const part2 = frequencies => {
-  const numFrequencies = frequencies.length
-  const loop = (index, prevSubtotal, subtotals) => {
-    const f = frequencies[index % numFrequencies]
-    const nextSubtotal = prevSubtotal + f
-    if (subtotals.has(nextSubtotal)) return B.done(nextSubtotal)
-    const newSubtotals = subtotals.add(nextSubtotal)
-    return B.cont(() => loop(index + 1, nextSubtotal, newSubtotals))
+function * cycle (frequencies) {
+  for (;;) {
+    yield* frequencies
   }
-  const answer = B.trampoline(loop(0, 0, I.Set()))
+}
+
+const part2 = frequencies => {
+  const { subtotal: answer } = R.reduceWhile(
+    acc => !acc.done,
+    (acc, f) => {
+      const subtotal = acc.subtotal + f
+      const done = acc.subtotals.has(subtotal)
+      const subtotals = done ? acc.subtotals : acc.subtotals.add(subtotal)
+      return { subtotal, done, subtotals }
+    },
+    { subtotal: 0, done: false, subtotals: I.Set() },
+    cycle(frequencies)
+  )
   console.log(`part 2 answer: ${answer}`)
 }
 
