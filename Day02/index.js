@@ -19,7 +19,7 @@ const part1 = ids => {
   console.log(`part 1 answer: ${answer}`)
 }
 
-const differingCharacterPos = (id1, id2) => {
+const differingPos = (id1, id2) => {
   const differingPositions = id1
     .split('')
     .map((ch, idx) => ch !== id2.charAt(idx) ? idx : -1)
@@ -28,18 +28,12 @@ const differingCharacterPos = (id1, id2) => {
 }
 
 const part2 = ids => {
-  let id
-  let pos
-  for (let index = 0; index < ids.length; index++) {
-    id = ids[index]
-    const otherIds = R.remove(index, 1, ids)
-    for (let innerIndex = 0; innerIndex < otherIds.length; innerIndex++) {
-      const otherId = otherIds[innerIndex]
-      pos = differingCharacterPos(id, otherId)
-      if (pos >= 0) break
-    }
-    if (pos >= 0) break
-  }
+  const pred = acc => acc.pos < 0
+  const innerReduceFn = (acc, id) =>
+    ({ ...acc, pos: differingPos(acc.id, id) })
+  const outerReduceFn = (_, id) =>
+    R.reduceWhile(pred, innerReduceFn, { id, pos: -1 }, ids)
+  const { id, pos } = R.reduceWhile(pred, outerReduceFn, { pos: -1 }, ids)
   const answer = R.take(pos, id) + R.drop(pos + 1, id)
   console.log(`part 2 answer: ${answer}`)
 }
