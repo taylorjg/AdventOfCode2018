@@ -1,5 +1,3 @@
-const B = require('bilby')
-const I = require('immutable')
 const R = require('ramda')
 const util = require('util')
 const fs = require('fs')
