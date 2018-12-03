@@ -18,21 +18,54 @@ const parseLine = line => {
 const parseLines = lines =>
   lines.map(parseLine)
 
-const part1 = claims => {
+const makeKey = (x, y) =>
+  `${x}-${y}`
+
+const makeMap = claims => {
   const map = new Map()
-  const makeKey = (x, y) => `${x}-${y}`
   const addSquaresToMap = claim => {
     const xs = R.range(claim.x, claim.x + claim.w)
     const ys = R.range(claim.y, claim.y + claim.h)
-    xs.forEach(x => ys.forEach(y => {
-      const key = makeKey(x, y)
-      const v = map.get(key) || 0
-      map.set(key, v + 1)
-    }))
+    xs.forEach(x =>
+      ys.forEach(y => {
+        const key = makeKey(x, y)
+        const ids = map.get(key) || []
+        map.set(key, [...ids, claim.id])
+      }))
   }
   claims.forEach(addSquaresToMap)
-  const answer = Array.from(map.values()).filter(v => v > 1).length
+  return map
+}
+
+const part1 = claims => {
+  const map = makeMap(claims)
+  const answer = Array.from(map.values())
+    .filter(ids => ids.length > 1)
+    .length
   console.log(`part 1 answer: ${answer}`)
+}
+
+const part2 = claims => {
+  const map = makeMap(claims)
+  const countOverlaps = claim => {
+    let numOverlaps = 0
+    const xs = R.range(claim.x, claim.x + claim.w)
+    const ys = R.range(claim.y, claim.y + claim.h)
+    xs.forEach(x =>
+      ys.forEach(y => {
+        const key = makeKey(x, y)
+        const ids = map.get(key) || []
+        const isOverlapping = ids.length > 1
+        numOverlaps += (isOverlapping ? 1 : 0)
+      }))
+    return numOverlaps
+  }
+  const claimOverlaps = claims.map(claim => {
+    const overlaps = countOverlaps(claim)
+    return { id: claim.id, overlaps }
+  })
+  const { id: answer } = claimOverlaps.find(({ overlaps }) => overlaps === 0)
+  console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
@@ -40,6 +73,7 @@ const main = async () => {
   const lines = buffer.toString().split('\n').filter(R.length)
   const claims = parseLines(lines)
   part1(claims)
+  part2(claims)
 }
 
 main()
