@@ -37,8 +37,8 @@ const part2 = ids => {
 }
 
 const main = async () => {
-  const buffer = await readFile('Day02/input.txt')
-  const ids = buffer.toString().split('\n').filter(R.length)
+  const buffer = await readFile('Day02/input.txt', 'utf8')
+  const ids = buffer.split('\n').filter(R.length)
   part1(ids)
   part2(ids)
 }
