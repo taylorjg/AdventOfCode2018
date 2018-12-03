@@ -10,9 +10,11 @@ const part1 = frequencies => {
   console.log(`part 1 answer: ${answer}`)
 }
 
-function * cycle (frequencies) {
+// Similar to Haskell's cycle:
+// cycle :: [a] -> [a]
+function * cycle (xs) {
   for (;;) {
-    yield* frequencies
+    yield* xs
   }
 }
 
