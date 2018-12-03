@@ -27,17 +27,17 @@ const differingPos = (id1, id2) => {
 
 const part2 = ids => {
   const pred = acc => acc.pos < 0
-  const innerReduceFn = (acc, id) =>
+  const innerReducer = (acc, id) =>
     ({ ...acc, pos: differingPos(acc.id, id) })
-  const outerReduceFn = (_, id) =>
-    R.reduceWhile(pred, innerReduceFn, { id, pos: -1 }, ids)
-  const { id, pos } = R.reduceWhile(pred, outerReduceFn, { pos: -1 }, ids)
+  const outerReducer = (_, id) =>
+    R.reduceWhile(pred, innerReducer, { id, pos: -1 }, ids)
+  const { id, pos } = R.reduceWhile(pred, outerReducer, { pos: -1 }, ids)
   const answer = R.take(pos, id) + R.drop(pos + 1, id)
   console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
-  const buffer = await readFile("Day02/input.txt")
+  const buffer = await readFile('Day02/input.txt')
   const ids = buffer.toString().split('\n').filter(R.length)
   part1(ids)
   part2(ids)
