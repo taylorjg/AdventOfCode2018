@@ -19,7 +19,19 @@ const parseLines = lines =>
   lines.map(parseLine)
 
 const part1 = claims => {
-  const answer = 0
+  const map = new Map()
+  const makeKey = (x, y) => `${x}-${y}`
+  const addSquaresToMap = claim => {
+    const xs = R.range(claim.x, claim.x + claim.w)
+    const ys = R.range(claim.y, claim.y + claim.h)
+    xs.forEach(x => ys.forEach(y => {
+      const key = makeKey(x, y)
+      const v = map.get(key) || 0
+      map.set(key, v + 1)
+    }))
+  }
+  claims.forEach(addSquaresToMap)
+  const answer = Array.from(map.values()).filter(v => v > 1).length
   console.log(`part 1 answer: ${answer}`)
 }
 
