@@ -12,8 +12,8 @@ const part1 = frequencies => {
 
 // Similar to Haskell's cycle:
 // cycle :: [a] -> [a]
-function * cycle (xs) {
-  for (;;) {
+function* cycle(xs) {
+  for (; ;) {
     yield* xs
   }
 }
@@ -24,7 +24,7 @@ const part2 = frequencies => {
     (acc, f) => {
       const subtotal = acc.subtotal + f
       const done = acc.subtotals.has(subtotal)
-      const subtotals = done ? acc.subtotals : acc.subtotals.add(subtotal)
+      const subtotals = acc.subtotals.add(subtotal)
       return { subtotal, done, subtotals }
     },
     { subtotal: 0, done: false, subtotals: I.Set() },
@@ -34,8 +34,8 @@ const part2 = frequencies => {
 }
 
 const main = async () => {
-  const buffer = await readFile("Day01/input.txt")
-  const lines = buffer.toString().split('\n').filter(R.length)
+  const buffer = await readFile('Day01/input.txt', 'utf8')
+  const lines = buffer.split('\n').filter(R.length)
   const frequencies = lines.map(s => parseInt(s, 10))
   part1(frequencies)
   part2(frequencies)
