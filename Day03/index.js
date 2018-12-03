@@ -21,18 +21,21 @@ const parseLines = lines =>
 const makeKey = (x, y) =>
   `${x}-${y}`
 
+const visitSquares = (map, claim, fn) => {
+  const xs = R.range(claim.x, claim.x + claim.w)
+  const ys = R.range(claim.y, claim.y + claim.h)
+  xs.forEach(x =>
+    ys.forEach(y => {
+      const key = makeKey(x, y)
+      const ids = map.get(key) || []
+      fn(key, ids)
+    }))
+}
+
 const makeMap = claims => {
   const map = new Map()
-  const addSquaresToMap = claim => {
-    const xs = R.range(claim.x, claim.x + claim.w)
-    const ys = R.range(claim.y, claim.y + claim.h)
-    xs.forEach(x =>
-      ys.forEach(y => {
-        const key = makeKey(x, y)
-        const ids = map.get(key) || []
-        map.set(key, [...ids, claim.id])
-      }))
-  }
+  const addSquaresToMap = claim =>
+    visitSquares(map, claim, (key, ids) => map.set(key, [...ids, claim.id]))
   claims.forEach(addSquaresToMap)
   return map
 }
@@ -49,15 +52,7 @@ const part2 = claims => {
   const map = makeMap(claims)
   const countOverlaps = claim => {
     let numOverlaps = 0
-    const xs = R.range(claim.x, claim.x + claim.w)
-    const ys = R.range(claim.y, claim.y + claim.h)
-    xs.forEach(x =>
-      ys.forEach(y => {
-        const key = makeKey(x, y)
-        const ids = map.get(key) || []
-        const isOverlapping = ids.length > 1
-        numOverlaps += (isOverlapping ? 1 : 0)
-      }))
+    visitSquares(map, claim, (_, ids) => numOverlaps += (ids.length > 1 ? 1 : 0))
     return numOverlaps
   }
   const claimOverlaps = claims.map(claim => {
