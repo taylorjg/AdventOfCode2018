@@ -21,15 +21,16 @@ const parseLines = lines =>
 const makeKey = (x, y) =>
   `${x}-${y}`
 
-const visitSquares = (map, claim, fn) => {
+const visitSquares = (map, claim, fn, init) => {
   const xs = R.range(claim.x, claim.x + claim.w)
   const ys = R.range(claim.y, claim.y + claim.h)
-  xs.forEach(x =>
-    ys.forEach(y => {
-      const key = makeKey(x, y)
-      const ids = map.get(key) || []
-      fn(key, ids)
-    }))
+  const squares = R.chain(x => R.map(y => [x, y], ys), xs)
+  const op = (acc, [x, y]) => {
+    const key = makeKey(x, y)
+    const ids = map.get(key) || []
+    return fn(key, ids, acc)
+  }
+  return R.reduce(op, init, squares)
 }
 
 const makeMap = claims => {
@@ -51,15 +52,14 @@ const part1 = claims => {
 const part2 = claims => {
   const map = makeMap(claims)
   const countOverlaps = claim => {
-    let numOverlaps = 0
-    visitSquares(map, claim, (_, ids) => numOverlaps += (ids.length > 1 ? 1 : 0))
-    return numOverlaps
+    const fn = (_, ids, acc) => acc + (ids.length > 1 ? 1 : 0)
+    return visitSquares(map, claim, fn, 0)
   }
-  const claimOverlaps = claims.map(claim => {
-    const overlaps = countOverlaps(claim)
-    return { id: claim.id, overlaps }
-  })
-  const { id: answer } = claimOverlaps.find(({ overlaps }) => overlaps === 0)
+  const overlapCounts = claims.map(claim => ({
+    id: claim.id,
+    overlaps: countOverlaps(claim)
+  }))
+  const { id: answer } = overlapCounts.find(({ overlaps }) => overlaps === 0)
   console.log(`part 2 answer: ${answer}`)
 }
 
