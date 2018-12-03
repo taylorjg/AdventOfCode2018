@@ -25,9 +25,9 @@ const part2 = frequencies => {
       const subtotal = acc.subtotal + f
       const done = acc.subtotals.has(subtotal)
       const subtotals = acc.subtotals.add(subtotal)
-      return { subtotal, done, subtotals }
+      return { subtotal, subtotals, done }
     },
-    { subtotal: 0, done: false, subtotals: I.Set() },
+    { subtotal: 0, subtotals: I.Set(), done: false },
     cycle(frequencies)
   )
   console.log(`part 2 answer: ${answer}`)
