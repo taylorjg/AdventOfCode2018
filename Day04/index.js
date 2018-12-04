@@ -96,12 +96,12 @@ const part1 = groupedEvents => {
 
 const part2 = groupedEvents => {
   const idsToGroupedMinutes = R.map(groupMinutes, groupedEvents)
-  const listOfGroupedMinutes = R.map(R.values, idsToGroupedMinutes)
-  const listOfSortedGroupedMinutes = R.map(R.sort((a, b) => b.length - a.length), listOfGroupedMinutes)
-  const listOfLongestGroups = R.map(R.head, listOfSortedGroupedMinutes)
-  const kvps = R.toPairs(listOfLongestGroups)
-  const kvpsSorted = R.sort(([, minutes1], [, minutes2]) => minutes2.length - minutes1.length, kvps)
-  const [id, minutes] = R.head(kvpsSorted)
+  const idsToListsOfMinutes = R.map(R.values, idsToGroupedMinutes)
+  const idsToListsOfMinutesSortedByDescLength = R.map(R.sort((a, b) => b.length - a.length), idsToListsOfMinutes)
+  const idsToLongestListOfMinutes = R.map(R.head, idsToListsOfMinutesSortedByDescLength)
+  const kvps = R.toPairs(idsToLongestListOfMinutes)
+  const kvpsSortedByDescLength = R.sort(([, minutes1], [, minutes2]) => minutes2.length - minutes1.length, kvps)
+  const [id, minutes] = R.head(kvpsSortedByDescLength)
   const minute = R.head(minutes)
   const answer = id * minute
   console.log(`part 2 answer: ${answer}`)
