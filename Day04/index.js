@@ -95,13 +95,20 @@ const part1 = groupedEvents => {
 }
 
 const part2 = groupedEvents => {
-  const answer = 0
+  const idsToGroupedMinutes = R.map(groupMinutes, groupedEvents)
+  const listOfGroupedMinutes = R.map(R.values, idsToGroupedMinutes)
+  const listOfSortedGroupedMinutes = R.map(R.sort((a, b) => b.length - a.length), listOfGroupedMinutes)
+  const listOfLongestGroups = R.map(R.head, listOfSortedGroupedMinutes)
+  const kvps = R.toPairs(listOfLongestGroups)
+  const kvpsSorted = R.sort(([, minutes1], [, minutes2]) => minutes2.length - minutes1.length, kvps)
+  const [id, minutes] = R.head(kvpsSorted)
+  const minute = R.head(minutes)
+  const answer = id * minute
   console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
-  // const buffer = await readFile('Day04/input.txt', 'utf8')
-  const buffer = await readFile('Day04/test.txt', 'utf8')
+  const buffer = await readFile('Day04/input.txt', 'utf8')
   const lines = buffer.split('\n').filter(R.length)
   const rawEvents = parseLines(lines)
   const sortedEvents = rawEvents.sort((a, b) => a.timestamp - b.timestamp)
