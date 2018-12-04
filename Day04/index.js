@@ -5,12 +5,8 @@ const fs = require('fs')
 const readFile = util.promisify(fs.readFile)
 
 const GUARD_BEGINS_SHIFT = 0
-const GUARD_WAKES_UP = 1
-const GUARD_FALLS_ASLEEP = 2
-
-const regex1 = /\[1518-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2})\] Guard #(\d+) begins shift/
-const regex2 = /\[1518-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2})\] wakes up/
-const regex3 = /\[1518-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2})\] falls asleep/
+const GUARD_FALLS_ASLEEP = 1
+const GUARD_WAKES_UP = 2
 
 const makeTimestamp = match =>
   new Date(Date.UTC(
@@ -20,46 +16,56 @@ const makeTimestamp = match =>
     Number(match[3]),
     Number(match[4]))).getTime()
 
+const guardBeginsShift = m => ({
+  eventType: GUARD_BEGINS_SHIFT,
+  timestamp: makeTimestamp(m),
+  id: Number(m[5])
+})
+
+const guardFallsAsleep = m => ({
+  eventType: GUARD_FALLS_ASLEEP,
+  timestamp: makeTimestamp(m),
+  minutes: Number(m[4]),
+})
+
+const guardGuardWakesUp = m => ({
+  eventType: GUARD_WAKES_UP,
+  timestamp: makeTimestamp(m),
+  minutes: Number(m[4]),
+})
+
+const regexTimestamp = /\[1518-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2})\]/
+const regex1 = new RegExp(regexTimestamp.source + / Guard #(\d+) begins shift/.source)
+const regex2 = new RegExp(regexTimestamp.source + / wakes up/.source)
+const regex3 = new RegExp(regexTimestamp.source + / falls asleep/.source)
+
+const PARSE_TABLE = [
+  [regex1, guardBeginsShift],
+  [regex2, guardFallsAsleep],
+  [regex3, guardGuardWakesUp]
+]
+
 const parseLine = line => {
-  const match1 = regex1.exec(line)
-  const match2 = regex2.exec(line)
-  const match3 = regex3.exec(line)
-  if (match1) {
-    return {
-      event: GUARD_BEGINS_SHIFT,
-      timestamp: makeTimestamp(match1),
-      id: Number(match1[5])
-    }
+  for ([r, f] of PARSE_TABLE) {
+    const match = r.exec(line)
+    if (match) return f(match)
   }
-  if (match2) {
-    return {
-      event: GUARD_WAKES_UP,
-      timestamp: makeTimestamp(match2),
-      minutes: Number(match2[4]),
-    }
-  }
-  if (match3) {
-    return {
-      event: GUARD_FALLS_ASLEEP,
-      timestamp: makeTimestamp(match3),
-      minutes: Number(match3[4]),
-    }
-  }
-  throw new Error(`Failed to parse line ${line}.`)
+  throw new Error(`Failed to parse line, "${line}".`)
 }
 
 const parseLines = lines =>
   lines.map(parseLine)
 
-const addIds = data => {
-  let id = -1
-  data.forEach(d => {
-    if (d.event === GUARD_BEGINS_SHIFT)
-      id = d.id
+// TODO: make this pure functional!
+const addIds = events => {
+  let currentId
+  events.forEach(e => {
+    if (e.eventType === GUARD_BEGINS_SHIFT)
+      currentId = e.id
     else
-      d.id = id
+      e.id = currentId
   })
-}  
+}
 
 const totalSleepTime = events => {
   const eventPairs = R.splitEvery(2, events)
@@ -67,35 +73,42 @@ const totalSleepTime = events => {
   return R.sum(sleepDurations)
 }
 
-const makeMinuteMap = events => {
+const groupMinutes = events => {
   const eventPairs = R.splitEvery(2, events)
   const minutes = R.chain(([fa, wu]) => R.range(fa.minutes, wu.minutes), eventPairs)
   return R.groupBy(R.identity, minutes)
 }
 
-const part1 = groupedData => {
-  const totals = R.map(totalSleepTime, groupedData)
+const part1 = groupedEvents => {
+  const totals = R.map(totalSleepTime, groupedEvents)
   const kvps = R.toPairs(totals)
-  const kvpsSorted = R.sort((a, b) => b[1] - a[1], kvps)
-  const bestId = kvpsSorted[0][0]
-  const bestEvents = groupedData[bestId]
-  const minuteMap = makeMinuteMap(bestEvents)
-  const vs1 = R.values(minuteMap)
-  const vs2 = R.sort((a, b) => b.length - a.length, vs1)
-  const bestMinute = vs2[0][0]
-  const answer = Number(bestId) * bestMinute
+  const kvpsSorted = R.sort(([, total1], [, total2]) => total2 - total1, kvps)
+  const [bestKey] = R.head(kvpsSorted)
+  const bestEvents = groupedEvents[bestKey]
+  const groupedMinutes = groupMinutes(bestEvents)
+  const listsOfSameMinutes = R.values(groupedMinutes)
+  const listsOfSameMinutesSorted = R.sort((a, b) => b.length - a.length, listsOfSameMinutes)
+  const [bestMinute] = R.head(listsOfSameMinutesSorted)
+  const bestId = Number(bestKey)
+  const answer = bestId * bestMinute
   console.log(`part 1 answer: ${answer}`)
 }
 
+const part2 = groupedEvents => {
+  const answer = 0
+  console.log(`part 2 answer: ${answer}`)
+}
+
 const main = async () => {
-  const buffer = await readFile('Day04/input.txt', 'utf8')
-  // const buffer = await readFile('Day04/test.txt', 'utf8')
+  // const buffer = await readFile('Day04/input.txt', 'utf8')
+  const buffer = await readFile('Day04/test.txt', 'utf8')
   const lines = buffer.split('\n').filter(R.length)
-  const rawData = parseLines(lines)
-  const sortedData = rawData.sort((a, b) => a.timestamp - b.timestamp)
-  addIds(sortedData)
-  const groupedData = R.groupBy(d => d.id, sortedData.filter(d => d.event != GUARD_BEGINS_SHIFT))
-  part1(groupedData)
+  const rawEvents = parseLines(lines)
+  const sortedEvents = rawEvents.sort((a, b) => a.timestamp - b.timestamp)
+  addIds(sortedEvents)
+  const groupedEvents = R.groupBy(e => e.id, sortedEvents.filter(e => e.eventType != GUARD_BEGINS_SHIFT))
+  part1(groupedEvents)
+  part2(groupedEvents)
 }
 
 main()
