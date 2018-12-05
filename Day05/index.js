@@ -1,35 +1,35 @@
+const B = require('bilby')
 const R = require('ramda')
 const util = require('util')
 const fs = require('fs')
 
 const readFile = util.promisify(fs.readFile)
 
+const findReactingUnits = p => {
+  const reducer = (_, idx) => {
+    const a = p.codePointAt(idx)
+    const b = p.codePointAt(idx + 1)
+    return Math.abs(a - b) === 32 ? idx : -1
+  }
+  return R.reduceWhile(pos => pos < 0, reducer, -1, R.range(0, p.length - 1))
+}
+
 const react = p => {
-  const findReactingUnits = s => {
-    for (let idx = 0; idx < s.length - 1; idx++) {
-      const a = s.codePointAt(idx)
-      const b = s.codePointAt(idx + 1)
-      if (Math.abs(a - b) === 32) return idx
-    }
-    return -1
-  }
-  for (;;) {
-    const pos = findReactingUnits(p)
-    if (pos < 0) break
-    p = R.take(pos, p) + R.drop(pos + 2, p)
-  }
-  return p
+  const pos = findReactingUnits(p)
+  return pos >= 0
+    ? B.cont(() => react(R.take(pos, p) + R.drop(pos + 2, p)))
+    : B.done(p)
 }
 
 const part1 = polymer => {
-  const answer = react(polymer).length
+  const answer = B.trampoline(react(polymer)).length
   console.log(`part 1 answer: ${answer}`)
 }
 
 const part2 = polymer => {
   const removeUnitAndReact = unit => {
     const polymerWithUnitRemoved = polymer.replace(new RegExp(unit, 'ig'), '')
-    return react(polymerWithUnitRemoved).length
+    return B.trampoline(react(polymerWithUnitRemoved)).length
   }
   const a = "a".codePointAt(0)
   const z = "z".codePointAt(0) + 1
