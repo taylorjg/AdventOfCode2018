@@ -30,8 +30,8 @@ const findClosest = (p, coordsList) => {
 }
 
 const makeMap = coordsList => {
-  const maxX = Math.max(...coordsList.map(c => c.x)) + 1
-  const maxY = Math.max(...coordsList.map(c => c.y)) + 1
+  const maxX = Math.max(...coordsList.map(c => c.x)) + 2
+  const maxY = Math.max(...coordsList.map(c => c.y)) + 2
   const xs = R.range(0, maxX)
   const ys = R.range(0, maxY)
   const locations = R.chain(x => R.map(y => ({ x, y }), ys), xs)
@@ -61,33 +61,47 @@ const dumpMap = (map, maxX, maxY) => {
   })
 }
 
-const findInfiniteLocations = coordsList => {
-  const maxX = Math.max(...coordsList.map(c => c.x))
-  const maxY = Math.max(...coordsList.map(c => c.y))
-  const rmost = coordsList.findIndex(e => e.x === maxX)
-  const bmost = coordsList.findIndex(e => e.y === maxY)
-  const infiniteLocations = [rmost, bmost]
-  console.log(`infiniteLocations: ${infiniteLocations.toString()}`)
+const findInfiniteLocations = (map, maxX, maxY) => {
+  console.log(`maxX: ${maxX}; maxY: ${maxY}`)
+  const xs = R.range(0, maxX + 1)
+  const ys = R.range(0, maxY + 1)
+  const findIdsAtLocations = locations => {
+    const locationsInMap = locations.filter(({ x, y }) => map.has(makeKey(x, y)))
+    const ids = locationsInMap.map(({ x, y }) => map.get(makeKey(x, y)))
+    return ids
+  }
+  const firstRow = new Set(findIdsAtLocations(xs.map(x => ({ x, y: 0 }))))
+  const lastRow = new Set(findIdsAtLocations(xs.map(x => ({ x, y: maxY - 1 }))))
+  const firstColumn = new Set(findIdsAtLocations(ys.map(y => ({ x: 0, y }))))
+  const lastColumn = new Set(findIdsAtLocations(ys.map(y => ({ x: maxX - 1, y }))))
+  const infiniteLocations = Array.from(new Set([
+    ...firstRow.values(),
+    ...lastRow.values(),
+    ...firstColumn.values(),
+    ...lastColumn.values()
+  ]).values())
+  // console.log(`infiniteLocations: ${infiniteLocations.toString()}`)
   return infiniteLocations
 }
 
 const part1 = coordsList => {
-  const infiniteLocations = findInfiniteLocations(coordsList)
+  const maxX = Math.max(...coordsList.map(c => c.x)) + 2
+  const maxY = Math.max(...coordsList.map(c => c.y)) + 2
   const map = makeMap(coordsList)
+  const infiniteLocations = findInfiniteLocations(map, maxX, maxY)
   const v1 = map.values()
   const v2 = R.groupBy(R.identity, v1)
   const v3 = R.values(v2)
   const v4 = v3.sort((a, b) => b.length - a.length)
   const v5 = v4.filter(l => !infiniteLocations.includes(l[0]))
   const v6 = v5.map(v => `${v[0]}: ${v.length}`)
-  console.log(`areas: ${v6.join(', ')}`)
   const answer = v5[0].length
   console.log(`part 1 answer: ${answer}`)
 }
 
 const main = async () => {
-  // const buffer = await readFile('Day06/input.txt', 'utf8')
-  const buffer = await readFile('Day06/test.txt', 'utf8')
+  const buffer = await readFile('Day06/input.txt', 'utf8')
+  // const buffer = await readFile('Day06/test.txt', 'utf8')
   const lines = buffer.trim().split('\n')
   const coordsList = parseLines(lines)
   part1(coordsList)
