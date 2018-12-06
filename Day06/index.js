@@ -80,7 +80,6 @@ const findInfiniteLocations = (map, maxX, maxY) => {
     ...firstColumn.values(),
     ...lastColumn.values()
   ]).values())
-  // console.log(`infiniteLocations: ${infiniteLocations.toString()}`)
   return infiniteLocations
 }
 
@@ -94,9 +93,28 @@ const part1 = coordsList => {
   const v3 = R.values(v2)
   const v4 = v3.sort((a, b) => b.length - a.length)
   const v5 = v4.filter(l => !infiniteLocations.includes(l[0]))
-  const v6 = v5.map(v => `${v[0]}: ${v.length}`)
   const answer = v5[0].length
   console.log(`part 1 answer: ${answer}`)
+}
+
+const totalDistance = (ps, q) => {
+  const v1 = ps.map(p => manhattanDistance(p, q))
+  return R.sum(v1)
+}
+
+const part2 = (coordsList, maxTotalDistance) => {
+  const maxX = Math.max(...coordsList.map(c => c.x)) + 2
+  const maxY = Math.max(...coordsList.map(c => c.y)) + 2
+  const xs = R.range(0, maxX)
+  const ys = R.range(0, maxY)
+  const locations = R.chain(x => R.map(y => ({ x, y }), ys), xs)
+  const v1 = locations.map(location => ({
+    location,
+    total: totalDistance(coordsList, location)
+  }))
+  const v2 = v1.filter(({ total }) => total < maxTotalDistance)
+  const answer = v2.length
+  console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
@@ -105,6 +123,8 @@ const main = async () => {
   const lines = buffer.trim().split('\n')
   const coordsList = parseLines(lines)
   part1(coordsList)
+  // part2(coordsList, 32)
+  part2(coordsList, 10000)
 }
 
 main()
