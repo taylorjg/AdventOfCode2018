@@ -16,7 +16,7 @@ const parseLine = line => {
 const parseLines = lines =>
   lines.map(parseLine)
 
-// TODO: do this immutably - use I.Map ?
+// TODO: mutates 'mesh' and 'entry2.deps'
 const makeMesh = steps => {
   let mesh = []
   const findId = id => mesh.find(e => e.id === id)
@@ -61,18 +61,18 @@ const part1 = steps => {
 
 const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
 
-
   const loop = (acc, seconds, workers) => {
 
-    // console.log(`[loop] acc: ${acc}; seconds: ${seconds}; workers: ${JSON.stringify(workers)}`)
-
     const isReadyToStart = (acc2, workers2) => e => {
+      const findTask = id =>
+        workers2.find(w => w.currentTask && w.currentTask.id === id)
       const alreadyCompleted = acc2.includes(e.id)
-      const alreadyExecuting = findTask(workers2, e.id)
+      const alreadyExecuting = findTask(e.id)
       const allDepsCompleted = e.deps.every(dep => acc2.includes(dep))
       return !alreadyCompleted && !alreadyExecuting && allDepsCompleted
     }
 
+    // TODO: mutates 'completedTasks'
     const tickWorkers = () => {
       const completedTasks = []
       const workers2 = workers.map(worker => {
@@ -95,9 +95,7 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
     const getDuration = id =>
       baseSeconds + (id.charCodeAt(0) - 'A'.charCodeAt(0) + 1)
 
-    const findTask = (workers, id) =>
-      workers.find(w => w.currentTask && w.currentTask.id === id)
-
+    // TODO: mutates 'workers'
     const startTasks = (workers, ids) => {
       for (const id of ids) {
         const availableWorker = workers.find(w => !w.currentTask)
@@ -118,18 +116,16 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
     const seconds2 = seconds + 1
     const [workers2, completedTasks] = tickWorkers()
     const acc2 = acc + completedTasks
-    // console.log(`completedTasks: ${JSON.stringify(completedTasks)}`)
 
-    const readyToStartTasks = mesh.filter(isReadyToStart(acc2, workers2))
-    // console.log(`readyToStartTasks: ${JSON.stringify(readyToStartTasks)}`)
+    const readyToStartEntries = mesh.filter(isReadyToStart(acc2, workers2))
 
-    if (readyToStartTasks.length === 0 && allWorkersIdle(workers2)) return B.done({ acc2, seconds })
-    if (readyToStartTasks.length === 0) return B.cont(() => loop(acc2, seconds2, workers2))
+    if (readyToStartEntries.length === 0 && allWorkersIdle(workers2)) return B.done(seconds)
+    if (readyToStartEntries.length === 0) return B.cont(() => loop(acc2, seconds2, workers2))
     if (allWorkersBusy(workers2)) return B.cont(() => loop(acc2, seconds2, workers2))
 
-    const readyToStartTaskIds = readyToStartTasks.map(e => e.id)
-    const sorted = readyToStartTaskIds.sort()
-    startTasks(workers2, sorted)
+    const idsToStart = readyToStartEntries.map(e => e.id)
+    const idsToStartSorted = idsToStart.sort()
+    startTasks(workers2, idsToStartSorted)
     return B.cont(() => loop(acc2, seconds2, workers2))
   }
 
@@ -140,17 +136,14 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
 const part2 = (steps, numWorkers, baseSeconds) => {
   const mesh = makeMesh(steps)
   const answer = orderMeshWithWorkers(mesh, numWorkers, baseSeconds)
-  // 1072: too high
-  console.log(`part 2 answer: ${JSON.stringify(answer)}`)
+  console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
   const buffer = await readFile('Day07/input.txt', 'utf8')
-  // const buffer = await readFile('Day07/test.txt', 'utf8')
   const lines = buffer.trim().split('\n')
   const steps = parseLines(lines)
   part1(steps)
-  // part2(steps, 2, 0)
   part2(steps, 5, 60)
 }
 
