@@ -1,4 +1,3 @@
-const B = require('bilby')
 const R = require('ramda')
 const util = require('util')
 const fs = require('fs')
@@ -67,7 +66,7 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
       const findTask = id =>
         workers2.find(w => w.currentTask && w.currentTask.id === id)
       const alreadyCompleted = acc2.includes(e.id)
-      const alreadyExecuting = findTask(e.id)
+      const alreadyExecuting = !!findTask(e.id)
       const allDepsCompleted = e.deps.every(dep => acc2.includes(dep))
       return !alreadyCompleted && !alreadyExecuting && allDepsCompleted
     }
@@ -119,18 +118,18 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
 
     const readyToStartEntries = mesh.filter(isReadyToStart(acc2, workers2))
 
-    if (readyToStartEntries.length === 0 && allWorkersIdle(workers2)) return B.done(seconds)
-    if (readyToStartEntries.length === 0) return B.cont(() => loop(acc2, seconds2, workers2))
-    if (allWorkersBusy(workers2)) return B.cont(() => loop(acc2, seconds2, workers2))
+    if (readyToStartEntries.length === 0 && allWorkersIdle(workers2)) return seconds
+    if (readyToStartEntries.length === 0) return loop(acc2, seconds2, workers2)
+    if (allWorkersBusy(workers2)) return loop(acc2, seconds2, workers2)
 
     const idsToStart = readyToStartEntries.map(e => e.id)
     const idsToStartSorted = idsToStart.sort()
     startTasks(workers2, idsToStartSorted)
-    return B.cont(() => loop(acc2, seconds2, workers2))
+    return loop(acc2, seconds2, workers2)
   }
 
   const workers = R.range(0, numWorkers).map(_ => ({ currentTask: null }))
-  return B.trampoline(loop('', 0, workers))
+  return loop('', 0, workers)
 }
 
 const part2 = (steps, numWorkers, baseSeconds) => {
