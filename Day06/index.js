@@ -15,7 +15,7 @@ const parseLine = line => {
 const parseLines = lines =>
   lines.map(parseLine)
 
-const makeKey = (x, y) =>
+const makeKey = ({ x, y }) =>
   `${x}-${y}`
 
 const manhattanDistance = ({ x: p1, y: p2 }, { x: q1, y: q2 }) =>
@@ -30,10 +30,10 @@ const findClosest = (p, coordsList) => {
 }
 
 const calculateDimensions = coordsList => {
-  const maxX = Math.max(...coordsList.map(c => c.x)) + 2
-  const maxY = Math.max(...coordsList.map(c => c.y)) + 2
-  const xs = R.range(0, maxX)
-  const ys = R.range(0, maxY)
+  const maxX = Math.max(...coordsList.map(({ x }) => x))
+  const maxY = Math.max(...coordsList.map(({ y }) => y))
+  const xs = R.range(0, maxX + 1)
+  const ys = R.range(0, maxY + 1)
   const locations = R.chain(x => R.map(y => ({ x, y }), ys), xs)
   return { maxX, maxY, xs, ys, locations }
 }
@@ -41,7 +41,7 @@ const calculateDimensions = coordsList => {
 const makeMap = (coordsList, dimensions) => {
   const pairs = dimensions.locations.map(location => {
     const closest = findClosest(location, coordsList)
-    return closest && [makeKey(location.x, location.y), closest.id]
+    return closest && [makeKey(location), closest.id]
   })
   return new Map(pairs.filter(R.identity))
 }
@@ -51,15 +51,13 @@ const findInfiniteLocationIds = (map, dimensions) => {
   const ys = dimensions.ys
   const maxX = dimensions.maxX
   const maxY = dimensions.maxY
-  const idsAlongEdge = locations => {
-    const locationsInMap = locations.filter(({ x, y }) => map.has(makeKey(x, y)))
-    const ids = locationsInMap.map(({ x, y }) => map.get(makeKey(x, y)))
-    return new Set(ids)
-  }
+  const idsAlongEdge = locations => new Set(locations
+    .filter(location => map.has(makeKey(location)))
+    .map(location => map.get(makeKey(location))))
   const firstRow = idsAlongEdge(xs.map(x => ({ x, y: 0 })))
-  const lastRow = idsAlongEdge(xs.map(x => ({ x, y: maxY - 1 })))
+  const lastRow = idsAlongEdge(xs.map(x => ({ x, y: maxY })))
   const firstColumn = idsAlongEdge(ys.map(y => ({ x: 0, y })))
-  const lastColumn = idsAlongEdge(ys.map(y => ({ x: maxX - 1, y })))
+  const lastColumn = idsAlongEdge(ys.map(y => ({ x: maxX, y })))
   return Array.from(new Set([
     ...firstRow.values(),
     ...lastRow.values(),
