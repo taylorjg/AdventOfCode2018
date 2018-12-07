@@ -4,7 +4,6 @@ const fs = require('fs')
 
 const readFile = util.promisify(fs.readFile)
 
-// Step C must be finished before step A can begin.
 const parseLine = line => {
   const match = /Step ([A-Z]) must be finished before step ([A-Z]) can begin./.exec(line)
   return {
@@ -16,6 +15,7 @@ const parseLine = line => {
 const parseLines = lines =>
   lines.map(parseLine)
 
+// TODO: do this immutably - use I.Map ?
 const makeMesh = steps => {
   let mesh = []
   const findId = id => mesh.find(e => e.id === id)
@@ -45,25 +45,23 @@ const orderMesh = mesh => {
     if (v1.length === 0) return acc
     const v2 = v1.map(e => e.id)
     const v3 = v2.sort()
-    const acc2 = acc + v3.join('')
-
-    // Mutable!
-    v3.forEach(id => completed.add(id))
-
+    const id = R.head(v3)
+    const acc2 = acc + id
+    completed.add(id)
     return loop(acc2, completed)
   }
+  // TODO: use I.Set
   return loop('', new Set())
 }
 
 const part1 = steps => {
   const mesh = makeMesh(steps)
-  console.dir(mesh)
   const answer = orderMesh(mesh)
   console.log(`part 1 answer: ${answer}`)
 }
 const main = async () => {
-  // const buffer = await readFile('Day07/input.txt', 'utf8')
-  const buffer = await readFile('Day07/test.txt', 'utf8')
+  const buffer = await readFile('Day07/input.txt', 'utf8')
+  // const buffer = await readFile('Day07/test.txt', 'utf8')
   const lines = buffer.trim().split('\n')
   const steps = parseLines(lines)
   part1(steps)
