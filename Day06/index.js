@@ -22,11 +22,11 @@ const manhattanDistance = ({ x: p1, y: p2 }, { x: q1, y: q2 }) =>
   Math.abs(p1 - q1) + Math.abs(p2 - q2)
 
 const findClosest = (p, coordsList) => {
-  const v1 = coordsList.map((q, id) => ({ id, d: manhattanDistance(p, q) }))
-  const v2 = v1.sort((a, b) => a.d - b.d)
-  const v3 = R.head(v2)
-  const v4 = v2.filter(({ d }) => d === v3.d)
-  return v4.length === 1 ? v3 : null
+  const distancesTo = coordsList.map((q, id) => ({ id, d: manhattanDistance(p, q) }))
+  const sorted = distancesTo.sort((a, b) => a.d - b.d)
+  const best = R.head(sorted)
+  const tied = sorted.filter(({ d }) => d === best.d).length > 1
+  return tied ? null : best
 }
 
 const calculateDimensions = coordsList => {
@@ -39,15 +39,11 @@ const calculateDimensions = coordsList => {
 }
 
 const makeMap = (coordsList, dimensions) => {
-  const map = new Map()
-  dimensions.locations.forEach(p => {
-    const closest = findClosest(p, coordsList)
-    if (closest) {
-      const k = makeKey(p.x, p.y)
-      map.set(k, closest.id)
-    }
+  const pairs = dimensions.locations.map(location => {
+    const closest = findClosest(location, coordsList)
+    return closest && [makeKey(location.x, location.y), closest.id]
   })
-  return map
+  return new Map(pairs.filter(R.identity))
 }
 
 const findInfiniteLocationIds = (map, dimensions) => {
@@ -79,10 +75,10 @@ const part1 = coordsList => {
   const ids = map.values()
   const idsToGroups = R.groupBy(R.identity, ids)
   const groups = R.values(idsToGroups)
-  const groupsSorted = groups.sort((a, b) => b.length - a.length)
-  const notInfinite = ids => !infiniteLocationIds.includes(R.head(ids))
-  const groupsFitered = groupsSorted.filter(notInfinite)
-  const answer = R.head(groupsFitered).length
+  const isFinite = ids => !infiniteLocationIds.includes(R.head(ids))
+  const finiteGroups = groups.filter(isFinite)
+  const sortedFiniteGroups = finiteGroups.sort((a, b) => b.length - a.length)
+  const answer = R.head(sortedFiniteGroups).length
   console.log(`part 1 answer: ${answer}`)
 }
 
