@@ -1,3 +1,4 @@
+const I = require('immutable')
 const R = require('ramda')
 const util = require('util')
 const fs = require('fs')
@@ -34,27 +35,34 @@ const makeMesh = steps => {
   return mesh
 }
 
-const orderMesh = mesh => {
+const makeMesh2 = steps => {
+  const reducer = (map, step) => map
+    .update(step.id1, (deps = I.List()) => deps)
+    .update(step.id2, (deps = I.List()) => deps.push(step.id1))
+  return steps.reduce(reducer, I.Map())
+}
+
+const orderMesh2 = mesh => {
   const loop = acc => {
-    const justCompleted = e => {
-      const alreadyCompleted = acc.includes(e.id)
-      const allDepsCompleted = e.deps.every(dep => acc.includes(dep))
+    const isNewlyCompleted = (deps, id) => {
+      const alreadyCompleted = acc.includes(id)
+      const allDepsCompleted = deps.every(dep => acc.includes(dep))
       return !alreadyCompleted && allDepsCompleted
     }
-    const v1 = mesh.filter(justCompleted)
-    if (v1.length === 0) return acc
-    const v2 = v1.map(e => e.id)
-    const v3 = v2.sort()
-    const id = R.head(v3)
-    const acc2 = acc + id
-    return loop(acc2)
+    const newlyCompletedSteps = mesh.filter(isNewlyCompleted)
+    if (newlyCompletedSteps.size === 0) return acc
+    const id = I.List(newlyCompletedSteps.keys())
+      .sort()
+      .first()
+    return loop(acc + id)
   }
   return loop('')
 }
 
 const part1 = steps => {
-  const mesh = makeMesh(steps)
-  const answer = orderMesh(mesh)
+  const mesh = makeMesh2(steps)
+  console.log(mesh.toJSON())
+  const answer = orderMesh2(mesh)
   console.log(`part 1 answer: ${answer}`)
 }
 
@@ -140,6 +148,7 @@ const part2 = (steps, numWorkers, baseSeconds) => {
 
 const main = async () => {
   const buffer = await readFile('Day07/input.txt', 'utf8')
+  // const buffer = await readFile('Day07/test.txt', 'utf8')
   const lines = buffer.trim().split('\n')
   const steps = parseLines(lines)
   part1(steps)
