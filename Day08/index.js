@@ -1,3 +1,4 @@
+const I = require('immutable')
 const R = require('ramda')
 const util = require('util')
 const fs = require('fs')
@@ -11,12 +12,12 @@ const readNode = (numbers, index) => {
     const [childNode, length] = readNode(numbers, acc.index)
     return {
       index: acc.index + length,
-      childNodes: [...acc.childNodes, childNode]
+      childNodes: acc.childNodes.push(childNode)
     }
   }
   const init = {
     index: index + 2,
-    childNodes: []
+    childNodes: I.List()
   }
   const { index: idx1, childNodes } = R.range(0, numChildNodes).reduce(reducer, init)
   const idx2 = idx1 + numMetadataEntries
@@ -39,12 +40,12 @@ const part1 = numbers => {
 const part2 = numbers => {
   const [root] = readNode(numbers, 0)
   const nodeValue = n => {
-    if (n.childNodes.length === 0) return R.sum(n.metadataEntries)
-    const validChildRefs = R.range(1, n.childNodes.length + 1)
+    if (n.childNodes.size === 0) return R.sum(n.metadataEntries)
+    const validChildRefs = R.range(1, n.childNodes.size + 1)
     const childRefIndices = n.metadataEntries
       .filter(childRef => validChildRefs.includes(childRef))
       .map(childRef => childRef - 1)
-    return R.sum(childRefIndices.map(index => nodeValue(n.childNodes[index])))
+    return R.sum(childRefIndices.map(index => nodeValue(n.childNodes.get(index))))
   }
   const answer = nodeValue(root)
   console.log(`part 2 answer: ${answer}`)
