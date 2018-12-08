@@ -61,23 +61,32 @@ const orderMesh2 = mesh => {
 
 const part1 = steps => {
   const mesh = makeMesh2(steps)
-  console.log(mesh.toJSON())
   const answer = orderMesh2(mesh)
   console.log(`part 1 answer: ${answer}`)
 }
 
-const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
+const orderMeshWithWorkers = (mesh, numWorkers, baseDuration) => {
+
+  const findExecutingTask = (workers, id) =>
+    workers.find(w => w.currentTask && w.currentTask.id === id)
+
+  const allWorkersIdle = workers =>
+    workers.every(worker => !worker.currentTask)
+
+  const allWorkersBusy = workers =>
+    workers.every(worker => !!worker.currentTask)
+
+  const isTaskReadyToStart = (acc, workers) => e => {
+    const alreadyCompleted = acc.includes(e.id)
+    const alreadyExecuting = !!findExecutingTask(workers, e.id)
+    const allDepsCompleted = e.deps.every(dep => acc.includes(dep))
+    return !alreadyCompleted && !alreadyExecuting && allDepsCompleted
+  }
+
+  const duration = id =>
+    baseDuration + (id.charCodeAt(0) - 'A'.charCodeAt(0) + 1)
 
   const loop = (acc, seconds, workers) => {
-
-    const isReadyToStart = (acc2, workers2) => e => {
-      const findTask = id =>
-        workers2.find(w => w.currentTask && w.currentTask.id === id)
-      const alreadyCompleted = acc2.includes(e.id)
-      const alreadyExecuting = !!findTask(e.id)
-      const allDepsCompleted = e.deps.every(dep => acc2.includes(dep))
-      return !alreadyCompleted && !alreadyExecuting && allDepsCompleted
-    }
 
     // TODO: mutates 'completedTasks'
     const tickWorkers = () => {
@@ -99,9 +108,6 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
       return [workers2, completedTasks.join('')]
     }
 
-    const getDuration = id =>
-      baseSeconds + (id.charCodeAt(0) - 'A'.charCodeAt(0) + 1)
-
     // TODO: mutates 'workers'
     const startTasks = (workers, ids) => {
       for (const id of ids) {
@@ -109,30 +115,26 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseSeconds) => {
         if (!availableWorker) break
         availableWorker.currentTask = {
           id,
-          remainingTime: getDuration(id)
+          remainingTime: duration(id)
         }
       }
     }
-
-    const allWorkersIdle = workers =>
-      workers.every(worker => !worker.currentTask)
-
-    const allWorkersBusy = workers =>
-      workers.every(worker => !!worker.currentTask)
 
     const seconds2 = seconds + 1
     const [workers2, completedTasks] = tickWorkers()
     const acc2 = acc + completedTasks
 
-    const readyToStartEntries = mesh.filter(isReadyToStart(acc2, workers2))
+    const tasksReadyToStart = mesh.filter(isTaskReadyToStart(acc2, workers2))
 
-    if (readyToStartEntries.length === 0 && allWorkersIdle(workers2)) return seconds
-    if (readyToStartEntries.length === 0) return loop(acc2, seconds2, workers2)
-    if (allWorkersBusy(workers2)) return loop(acc2, seconds2, workers2)
+    if (tasksReadyToStart.length === 0 && allWorkersIdle(workers2)) {
+      return seconds
+    }
 
-    const idsToStart = readyToStartEntries.map(e => e.id)
-    const idsToStartSorted = idsToStart.sort()
-    startTasks(workers2, idsToStartSorted)
+    if (tasksReadyToStart.length === 0 || allWorkersBusy(workers2)) {
+      return loop(acc2, seconds2, workers2)
+    }
+
+    startTasks(workers2, tasksReadyToStart.map(e => e.id))
     return loop(acc2, seconds2, workers2)
   }
 
