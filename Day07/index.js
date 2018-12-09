@@ -16,33 +16,14 @@ const parseLine = line => {
 const parseLines = lines =>
   lines.map(parseLine)
 
-// TODO: mutates 'mesh' and 'entry2.deps'
 const makeMesh = steps => {
-  let mesh = []
-  const findId = id => mesh.find(e => e.id === id)
-  for (step of steps) {
-    const entry1 = findId(step.id1)
-    if (!entry1) {
-      mesh.push({ id: step.id1, deps: [] })
-    }
-    const entry2 = findId(step.id2)
-    if (entry2) {
-      entry2.deps.push(step.id1)
-    } else {
-      mesh.push({ id: step.id2, deps: [step.id1] })
-    }
-  }
-  return mesh
-}
-
-const makeMesh2 = steps => {
   const reducer = (map, step) => map
     .update(step.id1, (deps = I.List()) => deps)
     .update(step.id2, (deps = I.List()) => deps.push(step.id1))
   return steps.reduce(reducer, I.Map())
 }
 
-const orderMesh2 = mesh => {
+const orderMesh = mesh => {
   const loop = acc => {
     const isNewlyCompleted = (deps, id) => {
       const alreadyCompleted = acc.includes(id)
@@ -51,15 +32,15 @@ const orderMesh2 = mesh => {
     }
     const newlyCompletedSteps = mesh.filter(isNewlyCompleted)
     if (newlyCompletedSteps.size === 0) return acc
-    const nextId = I.List(newlyCompletedSteps.keys()).sort().first()
+    const nextId = newlyCompletedSteps.keySeq().sort().first()
     return loop(acc + nextId)
   }
   return loop('')
 }
 
 const part1 = steps => {
-  const mesh = makeMesh2(steps)
-  const answer = orderMesh2(mesh)
+  const mesh = makeMesh(steps)
+  const answer = orderMesh(mesh)
   console.log(`part 1 answer: ${answer}`)
 }
 
@@ -74,10 +55,10 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseDuration) => {
   const allWorkersBusy = workers =>
     workers.every(worker => !!worker.currentTask)
 
-  const isTaskReadyToStart = (acc, workers) => e => {
-    const alreadyCompleted = acc.includes(e.id)
-    const alreadyExecuting = !!findExecutingTask(workers, e.id)
-    const allDepsCompleted = e.deps.every(dep => acc.includes(dep))
+  const isTaskReadyToStart = (acc, workers) => (deps, id) => {
+    const alreadyCompleted = acc.includes(id)
+    const alreadyExecuting = !!findExecutingTask(workers, id)
+    const allDepsCompleted = deps.every(dep => acc.includes(dep))
     return !alreadyCompleted && !alreadyExecuting && allDepsCompleted
   }
 
@@ -120,30 +101,30 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseDuration) => {
     }
   })
 
-  const startTasks = (workers, tasks) => {
-    const reducer = (acc, task) => {
+  const startTasks = (workers, taskIds) => {
+    const reducer = (acc, taskId) => {
       const availableWorkerIndex = acc.findIndex(worker => !worker.currentTask)
       return availableWorkerIndex >= 0
-        ? acc.set(availableWorkerIndex, makeBusyWorker(task.id))
+        ? acc.set(availableWorkerIndex, makeBusyWorker(taskId))
         : acc
     }
-    return tasks.reduce(reducer, I.List(workers))
+    return taskIds.reduce(reducer, I.List(workers))
   }
 
   const loop = (acc, seconds, workers) => {
     const { workers2, completedTasksIds } = advanceWorkers(workers)
     const acc2 = acc + completedTasksIds
-    const tasksReadyToStart = mesh.filter(isTaskReadyToStart(acc2, workers2))
-    if (tasksReadyToStart.length === 0 && allWorkersIdle(workers2)) {
+    const tasksIdsReadyToStart = mesh.filter(isTaskReadyToStart(acc2, workers2)).keySeq()
+    if (tasksIdsReadyToStart.size === 0 && allWorkersIdle(workers2)) {
       return seconds
     }
-    if (tasksReadyToStart.length === 0 || allWorkersBusy(workers2)) {
+    if (tasksIdsReadyToStart.size === 0 || allWorkersBusy(workers2)) {
       return loop(acc2, seconds + 1, workers2)
     }
-    return loop(acc2, seconds + 1, startTasks(workers2, tasksReadyToStart))
+    return loop(acc2, seconds + 1, startTasks(workers2, tasksIdsReadyToStart))
   }
 
-  const workers = R.range(0, numWorkers).map(makeIdleWorker)
+  const workers = I.List(R.range(0, numWorkers)).map(makeIdleWorker)
   return loop('', 0, workers)
 }
 
