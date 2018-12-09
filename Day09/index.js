@@ -34,8 +34,8 @@ const part2 = (numPlayers, lastMarble) => {
     return node
   }
   const makeNode = (value, prev, next) => ({ value, prev, next })
-  const cw = (node, count) => count >= 0 ? cw(node.next, count - 1) : node
-  const ccw = (node, count) => count >= 0? cw(node.prev, count - 1) : node
+  const cw = (node, count) => count > 0 ? cw(node.next, count - 1) : node
+  const ccw = (node, count) => count > 0 ? ccw(node.prev, count - 1) : node
   let currentNode = makeSelfNode(0)
   const turns = R.range(0, lastMarble)
   turns.forEach(turn => {
@@ -50,8 +50,10 @@ const part2 = (numPlayers, lastMarble) => {
       currentNode = seventhCcwNode.next
     } else {
       const prev = cw(currentNode, 1)
-      const next = cw(prev, 1)
-      const newNode = makeNode(currentMarble, prev, next)
+      const next = cw(currentNode, 2)
+      currentNode = makeNode(currentMarble, prev, next)
+      prev.next = currentNode
+      next.prev = currentNode
     }
   })
   const answer = Math.max(...scores.values())
