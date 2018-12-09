@@ -51,10 +51,8 @@ const orderMesh2 = mesh => {
     }
     const newlyCompletedSteps = mesh.filter(isNewlyCompleted)
     if (newlyCompletedSteps.size === 0) return acc
-    const id = I.List(newlyCompletedSteps.keys())
-      .sort()
-      .first()
-    return loop(acc + id)
+    const nextId = I.List(newlyCompletedSteps.keys()).sort().first()
+    return loop(acc + nextId)
   }
   return loop('')
 }
@@ -68,7 +66,7 @@ const part1 = steps => {
 const orderMeshWithWorkers = (mesh, numWorkers, baseDuration) => {
 
   const findExecutingTask = (workers, id) =>
-    workers.find(w => w.currentTask && w.currentTask.id === id)
+    workers.find(worker => worker.currentTask && worker.currentTask.id === id)
 
   const allWorkersIdle = workers =>
     workers.every(worker => !worker.currentTask)
@@ -86,59 +84,66 @@ const orderMeshWithWorkers = (mesh, numWorkers, baseDuration) => {
   const duration = id =>
     baseDuration + (id.charCodeAt(0) - 'A'.charCodeAt(0) + 1)
 
-  const loop = (acc, seconds, workers) => {
-
-    // TODO: mutates 'completedTasks'
-    const tickWorkers = () => {
-      const completedTasks = []
-      const workers2 = workers.map(worker => {
-        const currentTask = worker.currentTask
-        if (!currentTask) return worker
-        if (currentTask.remainingTime === 1) {
-          completedTasks.push(currentTask.id)
-          return { currentTask: null }
-        }
+  const advanceWorkers = workers => {
+    const advanceWorker = worker => ({
+      currentTask: {
+        id: worker.currentTask.id,
+        remainingTime: worker.currentTask.remainingTime - 1
+      }
+    })
+    const reducer = (acc, worker) => {
+      const currentTask = worker.currentTask
+      if (!currentTask) return { ...acc, workers2: acc.workers2.push(worker) }
+      if (currentTask.remainingTime === 1) {
         return {
-          currentTask: {
-            ...currentTask,
-            remainingTime: currentTask.remainingTime - 1
-          }
-        }
-      })
-      return [workers2, completedTasks.join('')]
-    }
-
-    // TODO: mutates 'workers'
-    const startTasks = (workers, ids) => {
-      for (const id of ids) {
-        const availableWorker = workers.find(w => !w.currentTask)
-        if (!availableWorker) break
-        availableWorker.currentTask = {
-          id,
-          remainingTime: duration(id)
+          workers2: acc.workers2.push(makeIdleWorker()),
+          completedTasksIds: acc.completedTasksIds.push(currentTask.id)
         }
       }
+      return { ...acc, workers2: acc.workers2.push(advanceWorker(worker)) }
     }
+    const init = {
+      workers2: I.List(),
+      completedTasksIds: I.List()
+    }
+    return workers.reduce(reducer, init)
+  }
 
-    const seconds2 = seconds + 1
-    const [workers2, completedTasks] = tickWorkers()
-    const acc2 = acc + completedTasks
+  const makeIdleWorker = () => ({
+    currentTask: null
+  })
 
+  const makeBusyWorker = id => ({
+    currentTask: {
+      id,
+      remainingTime: duration(id)
+    }
+  })
+
+  const startTasks = (workers, tasks) => {
+    const reducer = (acc, task) => {
+      const availableWorkerIndex = acc.findIndex(worker => !worker.currentTask)
+      return availableWorkerIndex >= 0
+        ? acc.set(availableWorkerIndex, makeBusyWorker(task.id))
+        : acc
+    }
+    return tasks.reduce(reducer, I.List(workers))
+  }
+
+  const loop = (acc, seconds, workers) => {
+    const { workers2, completedTasksIds } = advanceWorkers(workers)
+    const acc2 = acc + completedTasksIds
     const tasksReadyToStart = mesh.filter(isTaskReadyToStart(acc2, workers2))
-
     if (tasksReadyToStart.length === 0 && allWorkersIdle(workers2)) {
       return seconds
     }
-
     if (tasksReadyToStart.length === 0 || allWorkersBusy(workers2)) {
-      return loop(acc2, seconds2, workers2)
+      return loop(acc2, seconds + 1, workers2)
     }
-
-    startTasks(workers2, tasksReadyToStart.map(e => e.id))
-    return loop(acc2, seconds2, workers2)
+    return loop(acc2, seconds + 1, startTasks(workers2, tasksReadyToStart))
   }
 
-  const workers = R.range(0, numWorkers).map(_ => ({ currentTask: null }))
+  const workers = R.range(0, numWorkers).map(makeIdleWorker)
   return loop('', 0, workers)
 }
 
