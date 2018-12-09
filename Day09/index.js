@@ -7,8 +7,8 @@ const part1 = (numPlayers, lastMarble) => {
   const turns = R.range(0, lastMarble)
   turns.forEach(turn => {
     const elf = 1 + turn % numPlayers
+    const currentMarble = 1 + turn
     const length = marbles.length
-    const currentMarble = turn + 1
     if (currentMarble % 23 == 0) {
       const currentScore = scores.has(elf) ? scores.get(elf) : 0
       const seventhCcwIndex = (length - (7 - currentMarbleIndex)) % length
@@ -34,26 +34,32 @@ const part2 = (numPlayers, lastMarble) => {
     return node
   }
   const makeNode = (value, prev, next) => ({ value, prev, next })
+  const removeNode = node => {
+    node.prev.next = node.next
+    node.next.prev = node.prev
+  }
+  const insertNode = (node, prev, next) => {
+    prev.next = node
+    next.prev = node
+  }
   const cw = (node, count) => count > 0 ? cw(node.next, count - 1) : node
   const ccw = (node, count) => count > 0 ? ccw(node.prev, count - 1) : node
   let currentNode = makeSelfNode(0)
   const turns = R.range(0, lastMarble)
   turns.forEach(turn => {
     const elf = 1 + turn % numPlayers
-    const currentMarble = turn + 1
+    const currentMarble = 1 + turn
     if (currentMarble % 23 == 0) {
       const currentScore = scores.has(elf) ? scores.get(elf) : 0
       const seventhCcwNode = ccw(currentNode, 7)
       scores.set(elf, currentScore + currentMarble + seventhCcwNode.value)
-      seventhCcwNode.prev.next = seventhCcwNode.next
-      seventhCcwNode.next.prev = seventhCcwNode.prev
+      removeNode(seventhCcwNode)
       currentNode = seventhCcwNode.next
     } else {
       const prev = cw(currentNode, 1)
       const next = cw(currentNode, 2)
       currentNode = makeNode(currentMarble, prev, next)
-      prev.next = currentNode
-      next.prev = currentNode
+      insertNode(currentNode, prev, next)
     }
   })
   const answer = Math.max(...scores.values())
