@@ -15,11 +15,54 @@ const parseLine = line => {
 const parseLines = lines =>
   lines.map(parseLine)
 
-const drawLights = (timestamp, svg, points, dimensions) => {
-  console.log(`[drawLights] timestamp: ${timestamp}`)
-  setTimeout(() => {
-    requestAnimationFrame(timestamp => drawLights(timestamp, svg, points, dimensions))
-  }, 1000)
+const createSvgElement = (elementName, attributes = {}) => {
+  const element = document.createElementNS('http://www.w3.org/2000/svg', elementName)
+  Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value))
+  return element
+}
+
+const gridPosToSvgPos = ({ x: gridX, y: gridY }, gridDimensions, svgDimensions) => {
+  const svgX = (gridX - gridDimensions.minX) * svgDimensions.w / gridDimensions.w
+  const svgY = (gridY - gridDimensions.minY) * svgDimensions.h / gridDimensions.h
+  return { svgX, svgY }
+}
+
+let count = 0
+
+const drawLights = (timestamp, svg, points, svgDimensions) => {
+
+  count++
+  console.log(`count: ${count}`)
+
+  moveLights(points)
+
+  const minX = Math.min(...points.map(point => point.p.x))
+  const maxX = Math.max(...points.map(point => point.p.x))
+  const minY = Math.min(...points.map(point => point.p.y))
+  const maxY = Math.max(...points.map(point => point.p.y))
+  const w = maxX - minX + 1
+  const h = maxY - minY + 1
+  const gridDimensions = { minX, maxX, minY, maxY, w, h }
+
+  points.forEach((point, index) => {
+    const { svgX, svgY } = gridPosToSvgPos(point.p, gridDimensions, svgDimensions)
+    const pointId = `point-${index}`
+    const existingPointElement = svg.querySelector(`#${pointId}`)
+    if (existingPointElement) {
+      existingPointElement.setAttribute('cx', svgX)
+      existingPointElement.setAttribute('cy', svgY)
+    } else {
+      const newPointElement = createSvgElement('circle', {
+        id: pointId,
+        cx: svgX,
+        cy: svgY,
+        r: 4
+      })
+      svg.appendChild(newPointElement)
+    }
+  })
+
+  // requestAnimationFrame(timestamp => drawLights(timestamp, svg, points, svgDimensions))
 }
 
 const moveLights = points => {
@@ -30,15 +73,17 @@ const moveLights = points => {
 }
 
 const main = () => {
+
   const svg = document.getElementById('svg')
+  const svgDimensions = { w: svg.scrollWidth, h: svg.scrollHeight }
+
   const lines = input.trim().split('\n')
   const points = parseLines(lines)
-  const minX = Math.min(...points.map(point => point.p.x))
-  const maxX = Math.max(...points.map(point => point.p.x))
-  const minY = Math.min(...points.map(point => point.p.y))
-  const maxY = Math.max(...points.map(point => point.p.y))
-  const dimensions = { minX, maxX, minY, maxY }
-  requestAnimationFrame(timestamp => drawLights(timestamp, svg, points, dimensions))
+
+  const range = n => Array.from(Array(n).keys())
+  range(10830).forEach(() => moveLights(points))
+
+  requestAnimationFrame(timestamp => drawLights(timestamp, svg, points, svgDimensions))
 }
 
 const input = `
