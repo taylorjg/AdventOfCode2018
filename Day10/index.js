@@ -27,22 +27,22 @@ const gridPosToSvgPos = ({ x: gridX, y: gridY }, gridDimensions, svgDimensions) 
   return { svgX, svgY }
 }
 
-const drawPoints = (count, svg, points) => {
+const drawPoints = (count, svg, positions, velocities) => {
 
   console.log(`[drawPoints] count: ${count}`)
 
-  const minX = Math.min(...points.map(point => point.p.x))
-  const maxX = Math.max(...points.map(point => point.p.x))
-  const minY = Math.min(...points.map(point => point.p.y))
-  const maxY = Math.max(...points.map(point => point.p.y))
+  const minX = Math.min(...positions.map(p => p.x))
+  const maxX = Math.max(...positions.map(p => p.x))
+  const minY = Math.min(...positions.map(p => p.y))
+  const maxY = Math.max(...positions.map(p => p.y))
   const w = maxX - minX + 1
   const h = maxY - minY + 1
   const gridDimensions = { minX, maxX, minY, maxY, w, h }
 
   const svgDimensions = { w: svg.scrollWidth, h: svg.scrollHeight }
 
-  points.forEach((point, index) => {
-    const { svgX, svgY } = gridPosToSvgPos(point.p, gridDimensions, svgDimensions)
+  positions.forEach((p, index) => {
+    const { svgX, svgY } = gridPosToSvgPos(p, gridDimensions, svgDimensions)
     const pointId = `point-${index}`
     const existingPointElement = svg.getElementById(pointId)
     if (existingPointElement) {
@@ -59,17 +59,18 @@ const drawPoints = (count, svg, points) => {
     }
   })
 
-  // requestAnimationFrame(() => drawPoints(count + 1, svg, movePoints(points)))
+  // const positions2 = movePositions(velocities)(positions)
+  // requestAnimationFrame(() => drawPoints(count + 1, svg, positions2, velocities))
 }
 
-const movePoints = points =>
-  points.map(point => ({
-    ...point,
-    p: {
-      x: point.p.x + point.v.x,
-      y: point.p.y + point.v.y
+const movePositions = velocities => positions =>
+  positions.map((p, index) => {
+    const v = velocities[index]
+    return {
+      x: p.x + v.x,
+      y: p.y + v.y
     }
-  }))
+  })
 
 const range = n =>
   Array.from(Array(n).keys())
@@ -78,10 +79,12 @@ const main = () => {
   const svg = document.getElementById('svg')
   const lines = input.trim().split('\n')
   const points = parseLines(lines)
-  const count = 10831
+  const positions = points.map(point => point.p)
+  const velocities = points.map(point => point.v)
   // const count = 0
-  const points2 = range(count).reduce(movePoints, points)
-  requestAnimationFrame(() => drawPoints(count, svg, points2))
+  const count = 10831
+  const positions2 = range(count).reduce(movePositions(velocities), positions)
+  requestAnimationFrame(() => drawPoints(count, svg, positions2, velocities))
 }
 
 const input = `
