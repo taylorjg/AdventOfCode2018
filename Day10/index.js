@@ -27,11 +27,9 @@ const gridPosToSvgPos = ({ x: gridX, y: gridY }, gridDimensions, svgDimensions) 
   return { svgX, svgY }
 }
 
-let count = 0
+const drawPoints = (count, svg, points) => {
 
-const drawLights = (svg, points) => {
-
-  console.log(`count: ${count++}`)
+  console.log(`[drawPoints] count: ${count}`)
 
   const minX = Math.min(...points.map(point => point.p.x))
   const maxX = Math.max(...points.map(point => point.p.x))
@@ -61,28 +59,29 @@ const drawLights = (svg, points) => {
     }
   })
 
-  // moveLights(points)
-  // requestAnimationFrame(()) => drawLights(svg, points))
+  // requestAnimationFrame(() => drawPoints(count + 1, svg, movePoints(points)))
 }
 
-const moveLights = points => {
-  points.forEach(point => {
-    point.p.x += point.v.x
-    point.p.y += point.v.y
-  })
-}
+const movePoints = points =>
+  points.map(point => ({
+    ...point,
+    p: {
+      x: point.p.x + point.v.x,
+      y: point.p.y + point.v.y
+    }
+  }))
+
+const range = n =>
+  Array.from(Array(n).keys())
 
 const main = () => {
-
   const svg = document.getElementById('svg')
-
   const lines = input.trim().split('\n')
   const points = parseLines(lines)
-
-  const range = n => Array.from(Array(n).keys())
-  range(10831).forEach(() => moveLights(points))
-
-  requestAnimationFrame(() => drawLights(svg, points))
+  const count = 10831
+  // const count = 0
+  const points2 = range(count).reduce(movePoints, points)
+  requestAnimationFrame(() => drawPoints(count, svg, points2))
 }
 
 const input = `
