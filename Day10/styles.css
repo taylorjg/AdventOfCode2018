@@ -3,3 +3,7 @@ svg {
   width: 600px;
   height: 150px;
 }
+
+#controls {
+  margin-top: 10px;
+}

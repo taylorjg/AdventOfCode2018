@@ -27,9 +27,9 @@ const gridPosToSvgPos = ({ x: gridX, y: gridY }, gridDimensions, svgDimensions) 
   return { svgX, svgY }
 }
 
-const drawPoints = (count, svg, positions, velocities) => {
+const drawPoints = (svg, positions, velocities) => {
 
-  console.log(`[drawPoints] count: ${count}`)
+  updateCountLabel()
 
   const minX = Math.min(...positions.map(p => p.x))
   const maxX = Math.max(...positions.map(p => p.x))
@@ -59,11 +59,42 @@ const drawPoints = (count, svg, positions, velocities) => {
     }
   })
 
-  // const positions2 = movePositions(velocities)(positions)
-  // requestAnimationFrame(() => drawPoints(count + 1, svg, positions2, velocities))
+  requestAnimationFrame(() => drawPoints(svg, step(positions, velocities), velocities))
 }
 
-const movePositions = velocities => positions =>
+const step = (positions, velocities) => {
+  switch (state) {
+
+    case PAUSED:
+      return stepPause(positions, velocities)
+
+    case PLAYING:
+      count++
+      return stepForward(positions, velocities)
+
+    case STEPPING_FORWARD:
+      setState(PAUSED)
+      count++
+      return stepForward(positions, velocities)
+
+    case FAST_FORWARDING:
+      count += NUM_FAST_STEPS
+      return stepForwardFast(positions, velocities)
+
+    case STEPPING_BACKWARD:
+      setState(PAUSED)
+      count--
+      return stepBackward(positions, velocities)
+
+    case FAST_REWINDING:
+      count -= NUM_FAST_STEPS
+      return stepBackwardFast(positions, velocities)
+  }
+}
+
+const stepPause = (positions, _) => positions
+
+const stepForward = (positions, velocities) =>
   positions.map((p, index) => {
     const v = velocities[index]
     return {
@@ -72,19 +103,71 @@ const movePositions = velocities => positions =>
     }
   })
 
-const range = n =>
-  Array.from(Array(n).keys())
+const stepBackward = (positions, velocities) =>
+  positions.map((p, index) => {
+    const v = velocities[index]
+    return {
+      x: p.x - v.x,
+      y: p.y - v.y
+    }
+  })
+
+const stepForwardFast = (positions, velocities) =>
+  range(NUM_FAST_STEPS).reduce(acc => stepForward(acc, velocities), positions)
+
+const stepBackwardFast = (positions, velocities) =>
+  range(NUM_FAST_STEPS).reduce(acc => stepBackward(acc, velocities), positions)
+
+const range = n => Array.from(Array(n).keys())
+
+const countLabel = document.getElementById('countLabel')
+const pauseButton = document.getElementById('pause')
+const playButton = document.getElementById('play')
+const stepForwardButton = document.getElementById('stepForward')
+const fastForwardButton = document.getElementById('fastForward')
+const stepBackwardButton = document.getElementById('stepBackward')
+const fastRewindButton = document.getElementById('fastRewind')
+
+const PAUSED = 0
+const PLAYING = 1
+const STEPPING_FORWARD = 2
+const FAST_FORWARDING = 3
+const STEPPING_BACKWARD = 4
+const FAST_REWINDING = 5
+
+const NUM_FAST_STEPS = 10
+
+let state = PAUSED
+let count = 0
+
+const setState = (newState) => {
+  state = newState
+  pauseButton.disabled = state === PAUSED
+  playButton.disabled = state === PLAYING
+  stepForwardButton.disabled = state === STEPPING_FORWARD
+  fastForwardButton.disabled = state === FAST_FORWARDING
+  stepBackwardButton.disabled = state === STEPPING_BACKWARD
+  fastRewindButton.disabled = state === FAST_REWINDING
+}
+
+const updateCountLabel = () => countLabel.innerText = count.toString()
+
+pauseButton.addEventListener('click', () => setState(PAUSED))
+playButton.addEventListener('click', () => setState(PLAYING))
+stepForwardButton.addEventListener('click', () => setState(STEPPING_FORWARD))
+fastForwardButton.addEventListener('click', () => setState(FAST_FORWARDING))
+stepBackwardButton.addEventListener('click', () => setState(STEPPING_BACKWARD))
+fastRewindButton.addEventListener('click', () => setState(FAST_REWINDING))
 
 const main = () => {
+  setState(PAUSED)
+  updateCountLabel()
   const svg = document.getElementById('svg')
   const lines = input.trim().split('\n')
   const points = parseLines(lines)
   const positions = points.map(point => point.p)
   const velocities = points.map(point => point.v)
-  // const count = 0
-  const count = 10831
-  const positions2 = range(count).reduce(movePositions(velocities), positions)
-  requestAnimationFrame(() => drawPoints(count, svg, positions2, velocities))
+  requestAnimationFrame(() => drawPoints(svg, positions, velocities))
 }
 
 const input = `
