@@ -72,7 +72,7 @@ const step = (positions, velocities) => {
   switch (state) {
 
     case PAUSED:
-      return stepPause(positions, velocities)
+      return positions
 
     case PLAYING:
       count++
@@ -97,8 +97,6 @@ const step = (positions, velocities) => {
       return stepBackwardFast(positions, velocities)
   }
 }
-
-const stepPause = (positions, _) => positions
 
 const stepForward = (positions, velocities) =>
   positions.map((p, index) => {
