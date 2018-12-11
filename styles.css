@@ -7,3 +7,12 @@ svg {
 #controls {
   margin-top: 10px;
 }
+
+#countLabel {
+  display: inline-block;
+  min-width: 50px;
+}
+
+sub {
+  color: #20a1d3;
+}
