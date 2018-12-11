@@ -8,7 +8,13 @@ const extractHundereds = n => {
 
 const calculatePowerLevelOfFuelCell = serialNumber => ({ x, y }) => {
   const rackId = x + 10
-  return extractHundereds(((rackId * y) + serialNumber) * rackId) - 5
+  const pipe = R.pipe(
+    R.multiply(y),
+    R.add(serialNumber),
+    R.multiply(rackId),
+    extractHundereds,
+    R.add(-5))
+  return pipe(rackId)
 }
 
 const calculatePowerLevelOfRegion = (serialNumber, size, previousMap, region) => {
@@ -79,4 +85,4 @@ const part2 = serialNumber => {
 }
 
 part1(7139)
-part2(7139)
+// part2(7139)
