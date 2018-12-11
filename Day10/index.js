@@ -59,7 +59,7 @@ const drawPoints = (svg, positions, velocities) => {
     }
   })
 
-  if (state === PLAYING) {
+  if (state === PLAYING_X2) {
     setTimeout(() => {
       requestAnimationFrame(() => drawPoints(svg, step(positions, velocities), velocities))
     }, 500)
@@ -74,7 +74,8 @@ const step = (positions, velocities) => {
     case PAUSED:
       return positions
 
-    case PLAYING:
+    case PLAYING_X2:
+    case PLAYING_X60:
       count++
       return stepForward(positions, velocities)
 
@@ -126,18 +127,20 @@ const range = n => Array.from(Array(n).keys())
 
 const countLabel = document.getElementById('countLabel')
 const pauseButton = document.getElementById('pause')
-const playButton = document.getElementById('play')
+const playX2Button = document.getElementById('play-x2')
+const playX60Button = document.getElementById('play-x60')
 const stepForwardButton = document.getElementById('stepForward')
 const fastForwardButton = document.getElementById('fastForward')
 const stepBackwardButton = document.getElementById('stepBackward')
 const fastRewindButton = document.getElementById('fastRewind')
 
 const PAUSED = 0
-const PLAYING = 1
-const STEPPING_FORWARD = 2
-const FAST_FORWARDING = 3
-const STEPPING_BACKWARD = 4
-const FAST_REWINDING = 5
+const PLAYING_X2 = 1
+const PLAYING_X60 = 2
+const STEPPING_FORWARD = 3
+const FAST_FORWARDING = 4
+const STEPPING_BACKWARD = 5
+const FAST_REWINDING = 6
 
 const NUM_FAST_STEPS = 10
 
@@ -147,7 +150,8 @@ let count = 0
 const setState = (newState) => {
   state = newState
   pauseButton.disabled = state === PAUSED
-  playButton.disabled = state === PLAYING
+  playX2Button.disabled = state === PLAYING_X2
+  playX60Button.disabled = state === PLAYING_X60
   stepForwardButton.disabled = state === STEPPING_FORWARD
   fastForwardButton.disabled = state === FAST_FORWARDING
   stepBackwardButton.disabled = state === STEPPING_BACKWARD
@@ -157,7 +161,8 @@ const setState = (newState) => {
 const updateCountLabel = () => countLabel.innerText = count.toString()
 
 pauseButton.addEventListener('click', () => setState(PAUSED))
-playButton.addEventListener('click', () => setState(PLAYING))
+playX2Button.addEventListener('click', () => setState(PLAYING_X2))
+playX60Button.addEventListener('click', () => setState(PLAYING_X60))
 stepForwardButton.addEventListener('click', () => setState(STEPPING_FORWARD))
 fastForwardButton.addEventListener('click', () => setState(FAST_FORWARDING))
 stepBackwardButton.addEventListener('click', () => setState(STEPPING_BACKWARD))
