@@ -59,7 +59,13 @@ const drawPoints = (svg, positions, velocities) => {
     }
   })
 
-  requestAnimationFrame(() => drawPoints(svg, step(positions, velocities), velocities))
+  if (state === PLAYING) {
+    setTimeout(() => {
+      requestAnimationFrame(() => drawPoints(svg, step(positions, velocities), velocities))
+    }, 500)
+  } else {
+    requestAnimationFrame(() => drawPoints(svg, step(positions, velocities), velocities))
+  }
 }
 
 const step = (positions, velocities) => {
