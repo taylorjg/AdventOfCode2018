@@ -9,16 +9,39 @@
 
 svg {
   background-color: aliceblue;
-  width: calc(50% - 20px);
-  height: calc(width/4 - 20px);
-  margin: 20px;
+  width: calc(100vw - 20px);
+  height: calc(25vw - 20px);
+  margin: 10px;
 }
 
-#countLabel {
-  display: inline-block;
-  min-width: 50px;
+#buttons {
+  margin-top: 10px;
 }
 
 sub {
   color: #20a1d3;
+}
+
+sub.full {
+  display: none;
+}
+
+sub.mini {
+  display: inline-block;
+}
+
+@media (min-width: 768px) {
+
+  sub.full {
+    display: inline-block;
+  }
+
+  sub.mini {
+    display: none;
+  }
+
+  svg {
+    width: calc(600px);
+    height: calc(150px);
+  }
 }
