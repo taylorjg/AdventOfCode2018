@@ -18,24 +18,23 @@ const parseRule = line => {
 
 const tryApplyRule = (m, pot, rule) => {
   const pots = R.range(pot - 2, pot + 3)
-  const LLCRR = pots.map(p => m.has(p) ? m.get(p) : '.').join('')
-  if (LLCRR === rule.left) {
+  const LLCRR = pots.map(p => m.has(p) ? m.get(p) : '.')
+  if (R.equals(LLCRR, [...rule.left])) {
     return [pot, rule.right]
   }
   return null
 }
 
-const tryApplyRules = (m, pot, rules) => {
-  return R.reduceWhile(
-    kvp => !kvp,
+const applyRules = (m, pot, rules) =>
+  R.reduceWhile(
+    R.isNil,
     (_, rule) => tryApplyRule(m, pot, rule),
     null,
     rules) || [pot, '.']
-}
 
 const getPotsWithPlants = m => Array.from(m.entries())
-  .filter(([, ch]) => ch === '#')
-  .map(([pot]) => pot)
+  .filter(([, value]) => value === '#')
+  .map(R.head)
 
 const spread = (initialState, rules, numGenerations) => {
   const reducer = m => {
@@ -43,11 +42,10 @@ const spread = (initialState, rules, numGenerations) => {
     const min = Math.min(...pots)
     const max = Math.max(...pots)
     const extendedPots = [min - 2, min - 1, ...pots, max + 1, max + 2]
-    const kvps = extendedPots.map(pot => tryApplyRules(m, pot, rules))
-    const m2 = new Map(kvps)
-    return m2
+    const kvps = extendedPots.map(pot => applyRules(m, pot, rules))
+    return new Map(kvps)
   }
-  const init = new Map(initialState.split('').map((ch, index) => [index, ch]))
+  const init = new Map([...initialState].map((ch, index) => [index, ch]))
   const finalState = R.range(0, numGenerations).reduce(reducer, init)
   return R.sum(getPotsWithPlants(finalState))
 }
