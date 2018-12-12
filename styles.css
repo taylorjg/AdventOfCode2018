@@ -14,6 +14,10 @@ svg {
   margin: 10px;
 }
 
+svg circle {
+  r: 0.5vw;
+}
+
 #buttons {
   margin-top: 10px;
 }
@@ -43,5 +47,9 @@ sub.mini {
   svg {
     width: calc(600px);
     height: calc(150px);
+  }
+
+  svg circle {
+    r: 0.25vw;
   }
 }
