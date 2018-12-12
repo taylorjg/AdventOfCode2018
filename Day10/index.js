@@ -52,8 +52,7 @@ const drawPoints = (svg, positions, velocities) => {
       const newPointElement = createSvgElement('circle', {
         id: pointId,
         cx: svgX,
-        cy: svgY,
-        r: 4
+        cy: svgY
       })
       svg.appendChild(newPointElement)
     }
