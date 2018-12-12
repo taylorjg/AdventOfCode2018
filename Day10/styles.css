@@ -1,11 +1,17 @@
-svg {
-  background-color: aliceblue;
-  width: 600px;
-  height: 150px;
+#container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
 }
 
-#controls {
-  margin-top: 10px;
+svg {
+  background-color: aliceblue;
+  width: calc(50% - 20px);
+  height: calc(width/4 - 20px);
+  margin: 20px;
 }
 
 #countLabel {
