@@ -181,35 +181,62 @@ const moveCart = (track, { location, direction, turnCycle }) => {
   }
 }
 
+const orderCarts = carts => carts.sort((a, b) => {
+  const ax = a.location.x
+  const ay = a.location.y
+  const bx = b.location.x
+  const by = b.location.y
+  return ay !== by ? ay - by : ax - bx
+})
+
 const tryFindCollision = carts => {
   const groups = R.groupBy(cart => makeKey(cart.location), carts)
-  const collidingCarts = R.values(groups).find(carts => carts.length > 1)
-  return collidingCarts ? collidingCarts[0].location : null
+  return R.values(groups).find(carts => carts.length > 1)
 }
 
-const tick = track => carts => {
-  const orderedCarts = carts.sort((a, b) => {
-    const ax = a.location.x
-    const ay = a.location.y
-    const bx = b.location.x
-    const by = b.location.y
-    return ay !== by ? ay - by : ax - bx
-  })
-  const carts2 = orderedCarts.slice(0)
-  let collisionLocation
+const tickPart1 = track => carts => {
+  const orderedCarts = orderCarts(carts)
+  const carts2 = orderedCarts.slice()
+  let collidingCarts
   orderedCarts.forEach((cart, index) => {
-    if (!collisionLocation) {
+    if (!collidingCarts) {
       carts2[index] = moveCart(track, cart)
-      collisionLocation = tryFindCollision(carts2)
+      collidingCarts = tryFindCollision(carts2)
     }
   })
-  return [carts2, collisionLocation]
+  return [carts2, collidingCarts]
 }
 
-const part1 = (track, carts) => {
+const tickPart2 = track => carts => {
+  const collides = (c1, carts) => carts.find(c2 =>
+    c1.location.x === c2.location.x && c1.location.y === c2.location.y)
+  const orderedCarts = orderCarts(carts)
+  let carts2 = []
+  const collisionLocations = []
+  orderedCarts.forEach((cart, index) => {
+    if (!collisionLocations.find(l => cart.location.x === l.x && cart.location.y === l.y)) {
+      cart2 = moveCart(track, cart)
+      if (collides(cart2, carts2) || collides(cart2, carts.slice(index + 1))) {
+        collisionLocations.push(cart2.location)
+      }
+      carts2.push(cart2)
+    }
+  })
+  const carts3 = carts2.filter(c => !collisionLocations.find(l =>
+    c.location.x === l.x && c.location.y === l.y))
+  return carts3
+}
+
+const part1 = async fileName => {
+  const buffer = await readFile(fileName, 'utf8')
+  const lines = buffer.split('\n').filter(R.length)
+  const parseResult = parseInput(lines)
+  const [track] = parseResult
+  let [, carts] = parseResult
   for (; ;) {
-    [carts, collisionLocation] = tick(track)(carts)
-    if (collisionLocation) {
+    [carts, collidingCarts] = tickPart1(track)(carts)
+    if (collidingCarts) {
+      const collisionLocation = collidingCarts[0].location
       const answer = `${collisionLocation.x},${collisionLocation.y}`
       console.log(`part 1 answer: ${answer}`)
       return
@@ -217,12 +244,22 @@ const part1 = (track, carts) => {
   }
 }
 
-const main = async () => {
-  const buffer = await readFile('Day13/input.txt', 'utf8')
-  // const buffer = await readFile('Day13/test.txt', 'utf8')
+const part2 = async fileName => {
+  const buffer = await readFile(fileName, 'utf8')
   const lines = buffer.split('\n').filter(R.length)
-  const [track, carts] = parseInput(lines)
-  part1(track, carts)
+  const parseResult = parseInput(lines)
+  const [track] = parseResult
+  let [, carts] = parseResult
+  for (; ;) {
+    carts = tickPart2(track)(carts)
+    if (carts.length === 1) break
+  }
+  const remainingCart = R.head(carts)
+  const answer = `${remainingCart.location.x},${remainingCart.location.y}`
+  console.log(`part 2 answer: ${answer}`)
 }
 
-main()
+part1('Day13/test-part1.txt')
+part1('Day13/input.txt')
+part2('Day13/test-part2.txt')
+part2('Day13/input.txt')
