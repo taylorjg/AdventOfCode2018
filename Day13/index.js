@@ -53,6 +53,12 @@ const parseInput = lines => {
         trackKvps.push([makeKey(location), TRACK_HORIZONTAL])
         carts.push({ location, direction: ch, turnCycle: TURN_CYCLE_LEFT })
         break
+
+      case ' ':
+        break
+
+      default:
+        throw new Error(`Enexpected character, "${ch}".`)
     }
   })
   return [new Map(trackKvps), carts]
@@ -68,6 +74,8 @@ const directionAfterCurveLeft = direction => {
       return CART_UP
     case CART_RIGHT:
       return CART_DOWN
+    default:
+      throw new Error(`Unknown direction, ${direction}.`)
   }
 }
 
@@ -81,38 +89,73 @@ const directionAfterCurveRight = direction => {
       return CART_DOWN
     case CART_RIGHT:
       return CART_UP
+    default:
+      throw new Error(`Unknown direction, ${direction}.`)
+  }
+}
+
+const directionAfterLeftTurn = direction => {
+  switch (direction) {
+    case CART_UP:
+      return CART_LEFT
+    case CART_DOWN:
+      return CART_RIGHT
+    case CART_LEFT:
+      return CART_DOWN
+    case CART_RIGHT:
+      return CART_UP
+    default:
+      throw new Error(`Unknown direction, ${direction}.`)
+  }
+}
+
+const directionAfterRightTurn = direction => {
+  switch (direction) {
+    case CART_UP:
+      return CART_RIGHT
+    case CART_DOWN:
+      return CART_LEFT
+    case CART_LEFT:
+      return CART_UP
+    case CART_RIGHT:
+      return CART_DOWN
+    default:
+      throw new Error(`Unknown direction, ${direction}.`)
   }
 }
 
 const directionAfterTurn = (direction, turn) => {
   switch (turn) {
     case TURN_CYCLE_LEFT:
-      return directionAfterCurveLeft(direction)
+      return directionAfterLeftTurn(direction)
     case TURN_CYCLE_STRAIGHT:
       return direction
     case TURN_CYCLE_RIGHT:
-      return directionAfterCurveRight(direction)
+      return directionAfterRightTurn(direction)
+    default:
+      throw new Error(`Unknown turn, ${turn}.`)
+  }
+}
+
+const locationAfterMove = (location, direction) => {
+  switch (direction) {
+    case CART_UP:
+      return { ...location, y: location.y - 1 }
+    case CART_DOWN:
+      return { ...location, y: location.y + 1 }
+    case CART_LEFT:
+      return { ...location, x: location.x - 1 }
+    case CART_RIGHT:
+      return { ...location, x: location.x + 1 }
+    default:
+      throw new Error(`Unknown direction, ${direction}.`)
   }
 }
 
 const moveCart = (track, { location, direction, turnCycle }) => {
-  let location2 = location
+  let location2 = locationAfterMove(location, direction)
   let direction2 = direction
   let turnCycle2 = turnCycle
-  switch (direction) {
-    case CART_UP:
-      location2 = { x: location.x, y: location.y - 1 }
-      break
-    case CART_DOWN:
-      location2 = { x: location.x, y: location.y + 1 }
-      break
-    case CART_LEFT:
-      location2 = { x: location.x - 1, y: location.y }
-      break
-    case CART_RIGHT:
-      location2 = { x: location.x + 1, y: location.y }
-      break
-  }
   const trackType = track.get(makeKey(location2))
   switch (trackType) {
     case TRACK_HORIZONTAL:
@@ -128,12 +171,20 @@ const moveCart = (track, { location, direction, turnCycle }) => {
       direction2 = directionAfterTurn(direction, turnCycle)
       turnCycle2 = (turnCycle + 1) % 3
       break
+    default:
+      throw new Error(`Unknown track type, ${trackType}.`)
   }
   return {
     location: location2,
     direction: direction2,
     turnCycle: turnCycle2
   }
+}
+
+const tryFindCollision = carts => {
+  const groups = R.groupBy(cart => makeKey(cart.location), carts)
+  const collidingCarts = R.values(groups).find(carts => carts.length > 1)
+  return collidingCarts ? collidingCarts[0].location : null
 }
 
 const tick = track => carts => {
@@ -144,32 +195,25 @@ const tick = track => carts => {
     const by = b.location.y
     return ay !== by ? ay - by : ax - bx
   })
-  const carts2 = []
-  orderedCarts.forEach(cart => {
-    const cart2 = moveCart(track, cart)
-    carts2.push(cart2)
+  const carts2 = orderedCarts.slice(0)
+  let collisionLocation
+  orderedCarts.forEach((cart, index) => {
+    if (!collisionLocation) {
+      carts2[index] = moveCart(track, cart)
+      collisionLocation = tryFindCollision(carts2)
+    }
   })
-  const groups = R.groupBy(cart => makeKey(cart.location), carts2)
-  const collisionGroup = R.values(groups).find(g => g.length > 1)
-  const collisionLocation = collisionGroup ? collisionGroup[0].location : null
-  if (collisionLocation) {
-    console.dir(groups)
-  }
   return [carts2, collisionLocation]
 }
 
 const part1 = (track, carts) => {
-  // console.dir(track)
-  // console.dir(carts)
   for (; ;) {
     [carts, collisionLocation] = tick(track)(carts)
     if (collisionLocation) {
       const answer = `${collisionLocation.x},${collisionLocation.y}`
       console.log(`part 1 answer: ${answer}`)
-      break
+      return
     }
-    // console.log()
-    // console.dir(carts)
   }
 }
 
