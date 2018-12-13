@@ -207,24 +207,27 @@ const tickPart1 = track => carts => {
   return [carts2, collidingCarts]
 }
 
+const sameLocations = (l1, l2) => l1.x === l2.x && l1.y === l2.y
+const sameCartLocations = (c1, c2) => sameLocations(c1.location, c2.location)
+
 const tickPart2 = track => carts => {
-  const collides = (c1, carts) => carts.find(c2 =>
-    c1.location.x === c2.location.x && c1.location.y === c2.location.y)
+  const cartCollidesWithAny = (c1, carts) => carts.find(c2 => sameCartLocations(c1, c2))
   const orderedCarts = orderCarts(carts)
   let carts2 = []
   const collisionLocations = []
   orderedCarts.forEach((cart, index) => {
-    if (!collisionLocations.find(l => cart.location.x === l.x && cart.location.y === l.y)) {
+    if (!collisionLocations.find(l => sameLocations(l, cart.location))) {
       cart2 = moveCart(track, cart)
-      if (collides(cart2, carts2) || collides(cart2, carts.slice(index + 1))) {
+      const cartsAlreadyMoved = carts2
+      const cartsStillToMove = carts.slice(index + 1)
+      if (cartCollidesWithAny(cart2, cartsAlreadyMoved) || cartCollidesWithAny(cart2, cartsStillToMove)) {
         collisionLocations.push(cart2.location)
+      } else {
+        carts2.push(cart2)
       }
-      carts2.push(cart2)
     }
   })
-  const carts3 = carts2.filter(c => !collisionLocations.find(l =>
-    c.location.x === l.x && c.location.y === l.y))
-  return carts3
+  return carts2.filter(c => !collisionLocations.find(l => sameLocations(l, c.location)))
 }
 
 const part1 = async fileName => {
