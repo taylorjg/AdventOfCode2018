@@ -6,21 +6,14 @@ const part1 = numRecipes => {
   let scores = []
   scores[elf1Index] = 3
   scores[elf2Index] = 7
-  let len = 2
-  const moveTo = (elfIndexOld) => {
-    const numMoves = 1 + scores[elfIndexOld]
-    const elfIndexNew = (elfIndexOld + numMoves) % len
-    return elfIndexNew
-  }
+  let numScores = 2
+  const moveTo = elfIndex => (elfIndex + 1 + scores[elfIndex]) % numScores
   for (; ;) {
     const total = scores[elf1Index] + scores[elf2Index]
-    const totalChars = [...total.toString()]
-    const totalNumbers = totalChars.map(ch => parseInt(ch, 10))
-    for (idx of R.range(0, totalNumbers.length)) {
-      scores[len + idx] = totalNumbers[idx]
-    }
-    len += totalNumbers.length
-    if (len >= numRecipes + 10) break
+    const digits = [...total.toString()].map(Number)
+    digits.forEach((digit, index) => scores[numScores + index] = digit)
+    numScores += digits.length
+    if (numScores >= numRecipes + 10) break
     elf1Index = moveTo(elf1Index)
     elf2Index = moveTo(elf2Index)
   }
@@ -36,23 +29,16 @@ const part2 = scoreSequence => {
   let scores = []
   scores[elf1Index] = 3
   scores[elf2Index] = 7
-  let len = 2
+  let numScores = 2
   let pos
-  const moveTo = (elfIndexOld) => {
-    const numMoves = 1 + scores[elfIndexOld]
-    const elfIndexNew = (elfIndexOld + numMoves) % len
-    return elfIndexNew
-  }
+  const moveTo = elfIndex => (elfIndex + 1 + scores[elfIndex]) % numScores
   for (; ;) {
     const total = scores[elf1Index] + scores[elf2Index]
-    const totalChars = [...total.toString()]
-    const totalNumbers = totalChars.map(ch => parseInt(ch, 10))
-    for (idx of R.range(0, totalNumbers.length)) {
-      scores[len + idx] = totalNumbers[idx]
-    }
-    len += totalNumbers.length
+    const digits = [...total.toString()].map(Number)
+    digits.forEach((digit, index) => scores[numScores + index] = digit)
+    numScores += digits.length
     // If scores is long enough, keep checking a string made from the last few numbers.
-    if (len >= minLen) {
+    if (numScores >= minLen) {
       const s = scores.slice(-minLen).join('')
       pos = s.indexOf(scoreSequence)
       if (pos >= 0) break
@@ -60,7 +46,7 @@ const part2 = scoreSequence => {
     elf1Index = moveTo(elf1Index)
     elf2Index = moveTo(elf2Index)
   }
-  const answer = len - minLen + pos
+  const answer = numScores - minLen + pos
   console.log(`part 2 answer: ${answer}`)
 }
 
