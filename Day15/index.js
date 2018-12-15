@@ -117,6 +117,49 @@ const findShortestPath = (walls, units, goal, openSet, closedSet) => {
   return findShortestPath(walls, units, goal, openSet3, closedSet2)
 }
 
+const findShortestPaths = (walls, units, goal, openSet, closedSet, shortestPaths) => {
+
+  // console.log('-'.repeat(80))
+  // console.log(`goal: ${JSON.stringify(goal)}`)
+  // console.log('openSet:')
+  // Array.from(openSet.values()).forEach(n => console.log(JSON.stringify(n.location)))
+  // console.log('closedSet:')
+  // Array.from(closedSet.values()).forEach(n => console.log(JSON.stringify(n.location)))
+
+  if (openSet.isEmpty()) return shortestPaths
+  const currentNode = minBy(Array.from(openSet.values()), x => x.f)
+  // console.log(`currentNode.location: ${JSON.stringify(currentNode.location)}`)
+  const openSet2 = openSet.delete(currentNode)
+  const closedSet2 = closedSet.add(currentNode)
+  let shortestPaths2 = shortestPaths
+  if (sameLocations(goal, currentNode.location)) {
+    const thisPath = path(currentNode)
+    // console.log(`thisPath: ${JSON.stringify(thisPath)}`)
+    // console.log(`shortestPaths: ${JSON.stringify(shortestPaths)}`)
+    // if (shortestPaths.length === 0) {
+    //   return findShortestPaths(walls, units, goal, openSet2, closedSet2, [thisPath])
+    // }
+    if (shortestPaths.length > 0 && thisPath.length < R.head(shortestPaths).length) {
+      throw new Error('This should not happen!')
+    }
+    if (shortestPaths.length > 0 && thisPath.length > R.head(shortestPaths).length) {
+      return shortestPaths
+    }
+    // return findShortestPaths(walls, units, goal, openSet2, closedSet2, [...shortestPaths, thisPath])
+    shortestPaths2 = [...shortestPaths, thisPath]
+  }
+  const nls = getOpenSquareNeighbourLocations(walls, units, currentNode.location)
+  const nns = nls.map(nl => makeNode(nl, goal, currentNode))
+  const matchingNode = nn => n => sameLocations(nn.location, n.location)
+  // const nnsFiltered = nns.filter(nn =>
+  //   !openSet2.find(matchingNode(nn)) &&
+  //   !closedSet2.find(matchingNode(nn)))
+  // const nnsFiltered = nns.filter(nn => !openSet2.find(matchingNode(nn)))
+  const nnsFiltered = nns.filter(nn => !closedSet2.find(matchingNode(nn)))
+  const openSet3 = openSet2.union(I.Set(nnsFiltered))
+  return findShortestPaths(walls, units, goal, openSet3, closedSet2, shortestPaths2)
+}
+
 const findOpenSquaresInRange = (walls, units, targets) =>
   R.chain(target => getOpenSquareNeighbourLocations(walls, units, target), targets)
 
@@ -147,12 +190,21 @@ const part1 = async fileName => {
   // const shortestPath2 = findShortestPath(walls, units, goal, I.Set.of(startNode2), I.Set())
   // console.dir(shortestPath2)
 
-  const v1 = inRange.map(goal => {
-    const startNode = makeNode(orderedUnits[0].location, goal)
-    return findShortestPath(walls, units, goal, I.Set.of(startNode), I.Set())
-  })
+  // const v1 = R.map(goal => {
+  //   const startNode = makeNode(orderedUnits[0].location, goal)
+  //   return findShortestPath(walls, units, goal, I.Set.of(startNode), I.Set())
+  // }, inRange)
+  // const v2 = v1.filter(R.identity)
+  // v2.forEach(node => console.log(path(node)))
+
+  const startLocation = { x: 2, y: 1 }
+  const v1 = R.chain(goal => {
+    const startNode = makeNode(startLocation, goal)
+    return findShortestPaths(walls, units, goal, I.Set.of(startNode), I.Set(), [])
+  }, inRange)
   const v2 = v1.filter(R.identity)
-  v2.forEach(node => console.log(path(node)))
+  console.log('shortestPaths:')
+  console.dir(v2)
 }
 
-part1('Day15/test1.txt')
+part1('Day15/test4.txt')
