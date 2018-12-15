@@ -90,71 +90,25 @@ const getOpenSquareNeighbourLocations = (walls, units, l) =>
 
 const minBy = (xs, f) => xs.reduce((acc, x) => f(x) < f(acc) ? x : acc)
 
-// (This requires knowing when there is more than one shortest path
-//  so that you can consider the first step of each such path.)
-// TODO: findShortestPaths
-const findShortestPath = (walls, units, goal, openSet, closedSet) => {
-
-  // console.log(`goal: ${JSON.stringify(goal)}`)
-  // console.log('openSet:')
-  // Array.from(openSet.values()).forEach(n => console.log(JSON.stringify(n.location)))
-  // console.log('closedSet:')
-  // Array.from(closedSet.values()).forEach(n => console.log(JSON.stringify(n.location)))
-
-  if (openSet.isEmpty()) return
-  const currentNode = minBy(Array.from(openSet.values()), x => x.f)
-  // console.log(`currentNode: ${JSON.stringify(currentNode)}`)
-  const openSet2 = openSet.delete(currentNode)
-  const closedSet2 = closedSet.add(currentNode)
-  if (sameLocations(goal, currentNode.location)) return currentNode
-  const nls = getOpenSquareNeighbourLocations(walls, units, currentNode.location)
-  const nns = nls.map(nl => makeNode(nl, goal, currentNode))
-  const matchingNode = nn => n => sameLocations(nn.location, n.location)
-  const nnsFiltered = nns.filter(nn =>
-    !openSet2.find(matchingNode(nn)) &&
-    !closedSet2.find(matchingNode(nn)))
-  const openSet3 = openSet2.union(I.Set(nnsFiltered))
-  return findShortestPath(walls, units, goal, openSet3, closedSet2)
-}
-
 const findShortestPaths = (walls, units, goal, openSet, closedSet, shortestPaths) => {
-
-  // console.log('-'.repeat(80))
-  // console.log(`goal: ${JSON.stringify(goal)}`)
-  // console.log('openSet:')
-  // Array.from(openSet.values()).forEach(n => console.log(JSON.stringify(n.location)))
-  // console.log('closedSet:')
-  // Array.from(closedSet.values()).forEach(n => console.log(JSON.stringify(n.location)))
-
   if (openSet.isEmpty()) return shortestPaths
   const currentNode = minBy(Array.from(openSet.values()), x => x.f)
-  // console.log(`currentNode.location: ${JSON.stringify(currentNode.location)}`)
   const openSet2 = openSet.delete(currentNode)
   const closedSet2 = closedSet.add(currentNode)
   let shortestPaths2 = shortestPaths
   if (sameLocations(goal, currentNode.location)) {
     const thisPath = path(currentNode)
-    // console.log(`thisPath: ${JSON.stringify(thisPath)}`)
-    // console.log(`shortestPaths: ${JSON.stringify(shortestPaths)}`)
-    // if (shortestPaths.length === 0) {
-    //   return findShortestPaths(walls, units, goal, openSet2, closedSet2, [thisPath])
-    // }
     if (shortestPaths.length > 0 && thisPath.length < R.head(shortestPaths).length) {
       throw new Error('This should not happen!')
     }
     if (shortestPaths.length > 0 && thisPath.length > R.head(shortestPaths).length) {
       return shortestPaths
     }
-    // return findShortestPaths(walls, units, goal, openSet2, closedSet2, [...shortestPaths, thisPath])
     shortestPaths2 = [...shortestPaths, thisPath]
   }
   const nls = getOpenSquareNeighbourLocations(walls, units, currentNode.location)
   const nns = nls.map(nl => makeNode(nl, goal, currentNode))
   const matchingNode = nn => n => sameLocations(nn.location, n.location)
-  // const nnsFiltered = nns.filter(nn =>
-  //   !openSet2.find(matchingNode(nn)) &&
-  //   !closedSet2.find(matchingNode(nn)))
-  // const nnsFiltered = nns.filter(nn => !openSet2.find(matchingNode(nn)))
   const nnsFiltered = nns.filter(nn => !closedSet2.find(matchingNode(nn)))
   const openSet3 = openSet2.union(I.Set(nnsFiltered))
   return findShortestPaths(walls, units, goal, openSet3, closedSet2, shortestPaths2)
@@ -165,11 +119,20 @@ const findOpenSquaresInRange = (walls, units, targets) =>
 
 const findTargets = (units, unit) => units.filter(u => u.type !== unit.type)
 
+const findBestInRange = (startLocation, locations) => {
+  const v1 = R.map(location => ({ location, distance: distance(startLocation, location) }), locations)
+  const v2 = v1.sort((a, b) => a.distance - b.distance)
+  const shortestDistance = v2[0].distance
+  const v3 = v2.filter(({ distance }) => distance === shortestDistance)
+  const v4 = readingOrder(v3, obj => obj.location)
+  return v4[0].location
+}
+
 const findBestPath = (walls, units, startLocation, inRange) => {
-  const v1 = R.chain(goal => {
-    const startNode = makeNode(startLocation, goal)
-    return findShortestPaths(walls, units, goal, I.Set.of(startNode), I.Set(), [])
-  }, inRange)
+  const bestGoal = findBestInRange(startLocation, inRange)
+  console.log(`bestGoal: ${JSON.stringify(bestGoal)}`)
+  const startNode = makeNode(startLocation, bestGoal)
+  const v1 = findShortestPaths(walls, units, bestGoal, I.Set.of(startNode), I.Set(), [])
   const v2 = v1.filter(R.identity)
   const v3 = v2.sort((a, b) => a.length - b.length)
   const lengthOfShortestPath = v3[0].length
@@ -186,44 +149,12 @@ const part1 = async fileName => {
   let [, units] = parseResult
 
   const orderedUnits = readingOrder(units, u => u.location)
-  // console.dir(orderedUnits)
-
-  const targets = findTargets(orderedUnits, orderedUnits[0]).map(u => u.location)
-  // console.dir(targets)
-
-  const inRange = findOpenSquaresInRange(walls, units, targets)
-  // console.dir(inRange)
-
-  // const goal = inRange[0]
-  // const startNode = makeNode(orderedUnits[0].location, goal)
-  // const shortestPath = findShortestPath(walls, units, goal, I.Set.of(startNode), I.Set())
-  // console.dir(path(shortestPath))
-
-  // const startNode2 = makeNode({ x: 5, y: 1 }, goal)
-  // const shortestPath2 = findShortestPath(walls, units, goal, I.Set.of(startNode2), I.Set())
-  // console.dir(shortestPath2)
-
-  // const v1 = R.map(goal => {
-  //   const startNode = makeNode(orderedUnits[0].location, goal)
-  //   return findShortestPath(walls, units, goal, I.Set.of(startNode), I.Set())
-  // }, inRange)
-  // const v2 = v1.filter(R.identity)
-  // v2.forEach(node => console.log(path(node)))
-
   const firstElf = units.find(u => u.type === ELF)
+  const targets = findTargets(orderedUnits, firstElf).map(u => u.location)
+  const inRange = findOpenSquaresInRange(walls, units, targets)
   const startLocation = firstElf.location
-
-  // const v1 = R.chain(goal => {
-  //   const startNode = makeNode(startLocation, goal)
-  //   return findShortestPaths(walls, units, goal, I.Set.of(startNode), I.Set(), [])
-  // }, inRange)
-  // const v2 = v1.filter(R.identity)
-  // console.log('shortestPaths:')
-  // console.dir(v2)
-
-  const paths = findBestPath(walls, units, startLocation, inRange)
-  console.log('paths:')
-  console.dir(paths)
+  const bestPath = findBestPath(walls, units, startLocation, inRange)
+  console.log(`bestPath: ${JSON.stringify(bestPath)}`)
 }
 
 part1('Day15/test4.txt')
