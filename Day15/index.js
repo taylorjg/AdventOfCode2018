@@ -165,6 +165,19 @@ const findOpenSquaresInRange = (walls, units, targets) =>
 
 const findTargets = (units, unit) => units.filter(u => u.type !== unit.type)
 
+const findBestPath = (walls, units, startLocation, inRange) => {
+  const v1 = R.chain(goal => {
+    const startNode = makeNode(startLocation, goal)
+    return findShortestPaths(walls, units, goal, I.Set.of(startNode), I.Set(), [])
+  }, inRange)
+  const v2 = v1.filter(R.identity)
+  const v3 = v2.sort((a, b) => a.length - b.length)
+  const lengthOfShortestPath = v3[0].length
+  const v4 = v3.filter(path => path.length === lengthOfShortestPath)
+  const v5 = readingOrder(v4, path => path[0])
+  return v5[0]
+}
+
 const part1 = async fileName => {
   const buffer = await readFile(fileName, 'utf8')
   const lines = buffer.trim().split('\n')
@@ -197,14 +210,20 @@ const part1 = async fileName => {
   // const v2 = v1.filter(R.identity)
   // v2.forEach(node => console.log(path(node)))
 
-  const startLocation = { x: 2, y: 1 }
-  const v1 = R.chain(goal => {
-    const startNode = makeNode(startLocation, goal)
-    return findShortestPaths(walls, units, goal, I.Set.of(startNode), I.Set(), [])
-  }, inRange)
-  const v2 = v1.filter(R.identity)
-  console.log('shortestPaths:')
-  console.dir(v2)
+  const firstElf = units.find(u => u.type === ELF)
+  const startLocation = firstElf.location
+
+  // const v1 = R.chain(goal => {
+  //   const startNode = makeNode(startLocation, goal)
+  //   return findShortestPaths(walls, units, goal, I.Set.of(startNode), I.Set(), [])
+  // }, inRange)
+  // const v2 = v1.filter(R.identity)
+  // console.log('shortestPaths:')
+  // console.dir(v2)
+
+  const paths = findBestPath(walls, units, startLocation, inRange)
+  console.log('paths:')
+  console.dir(paths)
 }
 
 part1('Day15/test4.txt')
