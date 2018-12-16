@@ -159,6 +159,25 @@ const testInstruction = sample => {
   return count
 }
 
+const OPCODE_TO_FN = {
+  [13]: addr,
+  [10]: addi,
+  [14]: mulr,
+  [5]: muli,
+  [6]: bani,
+  [0]: banr,
+  [7]: borr,
+  [4]: bori,
+  [2]: setr,
+  [15]: seti,
+  [8]: gtir,
+  [11]: gtri,
+  [9]: gtrr,
+  [3]: eqir,
+  [12]: eqri,
+  [1]: eqrr
+}
+
 const parseLines = lines => {
   const pos = findDivider(lines)
   const samplesLines = lines.slice(0, pos)
@@ -168,10 +187,52 @@ const parseLines = lines => {
   return [samples, instructions]
 }
 
+const listPossibilities = samples => {
+  const fns = [
+    addr,
+    addi,
+    mulr,
+    muli,
+    bani,
+    banr,
+    borr,
+    bori,
+    setr,
+    seti,
+    gtir,
+    gtri,
+    gtrr,
+    eqir,
+    eqri,
+    eqrr
+  ]
+  for (const fn of fns) {
+    const correctSamples = samples.filter(sample => {
+      const result = fn(sample.instruction, sample.registersBefore)
+      return R.equals(result, sample.registersAfter)
+    })
+    console.log(`${fn.name} - ${JSON.stringify(R.uniq(correctSamples.map(s => s.instruction.opcode)))}`)
+  }
+}
+
 const part1 = samples => {
   const counts = samples.map(testInstruction)
   const answer = counts.filter(count => count >= 3).length
   console.log(`part 1 answer: ${answer}`)
+}
+
+const executeProgram = instructions => {
+  const initialRegisters = [0, 0, 0, 0]
+  const reducer = (registers, instruction) => {
+    const fn = OPCODE_TO_FN[instruction.opcode]
+    return fn(instruction, registers)
+  }
+  return instructions.reduce(reducer, initialRegisters)
+}
+
+const part2 = instructions => {
+  const answer = executeProgram(instructions)[0]
+  console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
@@ -180,6 +241,8 @@ const main = async () => {
   const lines = buffer.trim().split('\n')
   const [samples, instructions] = parseLines(lines)
   part1(samples)
+  listPossibilities(samples)
+  part2(instructions)
 }
 
 main()
