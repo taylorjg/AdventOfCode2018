@@ -48,6 +48,15 @@ const findDivider = lines => {
   }
 }
 
+const parseLines = lines => {
+  const pos = findDivider(lines)
+  const samplesLines = lines.slice(0, pos)
+  const instructionsLines = lines.slice(pos + 3)
+  const samples = parseSamples(samplesLines)
+  const instructions = parseInstructions(instructionsLines)
+  return [samples, instructions]
+}
+
 const setRegister = (registers, output, value) =>
   R.update(output, value, registers)
 
@@ -159,35 +168,13 @@ const testInstruction = sample => {
   return count
 }
 
-const OPCODE_TO_FN = {
-  [13]: addr,
-  [10]: addi,
-  [14]: mulr,
-  [5]: muli,
-  [6]: bani,
-  [0]: banr,
-  [7]: borr,
-  [4]: bori,
-  [2]: setr,
-  [15]: seti,
-  [8]: gtir,
-  [11]: gtri,
-  [9]: gtrr,
-  [3]: eqir,
-  [12]: eqri,
-  [1]: eqrr
+const part1 = samples => {
+  const counts = samples.map(testInstruction)
+  const answer = counts.filter(count => count >= 3).length
+  console.log(`part 1 answer: ${answer}`)
 }
 
-const parseLines = lines => {
-  const pos = findDivider(lines)
-  const samplesLines = lines.slice(0, pos)
-  const instructionsLines = lines.slice(pos + 3)
-  const samples = parseSamples(samplesLines)
-  const instructions = parseInstructions(instructionsLines)
-  return [samples, instructions]
-}
-
-const listPossibilities = samples => {
+const determineOpcodeMapping = samples => {
   const fns = [
     addr,
     addi,
@@ -206,43 +193,54 @@ const listPossibilities = samples => {
     eqri,
     eqrr
   ]
-  for (const fn of fns) {
-    const correctSamples = samples.filter(sample => {
-      const result = fn(sample.instruction, sample.registersBefore)
-      return R.equals(result, sample.registersAfter)
+  const givesCorrectAnswer = fn => sample =>
+    R.equals(fn(sample.instruction, sample.registersBefore), sample.registersAfter)
+  const correctOpcodes = fn =>
+    R.pipe(
+      R.filter(givesCorrectAnswer(fn)),
+      R.map(sample => sample.instruction.opcode),
+      R.uniq)(samples)
+  const dict = fns.map(fn => ({
+    fn,
+    opcodes: correctOpcodes(fn)
+  }))
+  const loop = (dict, acc) => {
+    const elemWithSingleOpcode = dict.find(elem =>
+      elem.opcodes.length === 1 && !acc.find(([k]) => elem.opcodes[0] === k))
+    if (!elemWithSingleOpcode) return acc
+    const opcode = elemWithSingleOpcode.opcodes[0]
+    acc.push([opcode, elemWithSingleOpcode.fn])
+    dict.forEach(elem => {
+      if (elem !== elemWithSingleOpcode) {
+        elem.opcodes = R.without([opcode], elem.opcodes)
+      }
     })
-    console.log(`${fn.name} - ${JSON.stringify(R.uniq(correctSamples.map(s => s.instruction.opcode)))}`)
+    return loop(dict, acc)
   }
+  return new Map(loop(dict, []))
 }
 
-const part1 = samples => {
-  const counts = samples.map(testInstruction)
-  const answer = counts.filter(count => count >= 3).length
-  console.log(`part 1 answer: ${answer}`)
-}
-
-const executeProgram = instructions => {
+const executeProgram = (opcodeMapping, instructions) => {
   const initialRegisters = [0, 0, 0, 0]
   const reducer = (registers, instruction) => {
-    const fn = OPCODE_TO_FN[instruction.opcode]
+    const fn = opcodeMapping.get(instruction.opcode)
     return fn(instruction, registers)
   }
   return instructions.reduce(reducer, initialRegisters)
 }
 
-const part2 = instructions => {
-  const answer = executeProgram(instructions)[0]
+const part2 = (samples, instructions) => {
+  const opcodeMapping = determineOpcodeMapping(samples)
+  const answer = executeProgram(opcodeMapping, instructions)[0]
   console.log(`part 2 answer: ${answer}`)
 }
 
 const main = async () => {
   const buffer = await readFile('Day16/input.txt', 'utf8')
-  // const buffer = await readFile('Day16/test.txt', 'utf8')
   const lines = buffer.trim().split('\n')
   const [samples, instructions] = parseLines(lines)
   part1(samples)
-  listPossibilities(samples)
-  part2(instructions)
+  part2(samples, instructions)
 }
 
 main()
