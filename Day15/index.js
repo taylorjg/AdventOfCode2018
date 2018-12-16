@@ -134,11 +134,40 @@ const findBestPath = (walls, units, startLocation, inRange) => {
   const startNode = makeNode(startLocation, bestGoal)
   const v1 = findShortestPaths(walls, units, bestGoal, I.Set.of(startNode), I.Set(), [])
   const v2 = v1.filter(R.identity)
-  const v3 = v2.sort((a, b) => a.length - b.length)
+  const v3 = v2.sort((p1, p2) => p1.length - p2.length)
   const lengthOfShortestPath = v3[0].length
-  const v4 = v3.filter(path => path.length === lengthOfShortestPath)
+  const v4 = v3.filter(p => p.length === lengthOfShortestPath)
   const v5 = readingOrder(v4, path => path[0])
   return v5[0]
+}
+
+const findAdjacentTarget = (unit, targets) =>
+  R.reduceWhile(
+    R.isNil,
+    (_, nl) => targets.find(t => sameLocations(nl, t)),
+    null,
+    getNeighbourLocations(unit.location))
+
+const turn = (walls, units) => {
+  const orderedUnits = readingOrder(units, u => u.location)
+  for (const unit of orderedUnits) {
+    const targets = findTargets(orderedUnits, unit).map(u => u.location)
+    const orderedTargets = readingOrder(targets, R.identity)
+    const adjacentTarget = findAdjacentTarget(unit, orderedTargets)
+    let chosenSquare
+    if (adjacentTarget) chosenSquare = adjacentTarget
+    else {
+      const inRange = findOpenSquaresInRange(walls, units, targets)
+      const bestPath = findBestPath(walls, units, unit.location, inRange)
+      if (bestPath) chosenSquare = bestPath[0]
+    }
+    if (chosenSquare) {
+      console.log(`unit: ${JSON.stringify(unit)}; chosenSquare: ${JSON.stringify(chosenSquare)}`)
+      // TODO: move
+      unit.location = chosenSquare
+      // TODO: attack
+    }
+  }
 }
 
 const part1 = async fileName => {
@@ -148,13 +177,16 @@ const part1 = async fileName => {
   const [walls] = parseResult
   let [, units] = parseResult
 
-  const orderedUnits = readingOrder(units, u => u.location)
-  const firstElf = units.find(u => u.type === ELF)
-  const targets = findTargets(orderedUnits, firstElf).map(u => u.location)
-  const inRange = findOpenSquaresInRange(walls, units, targets)
-  const startLocation = firstElf.location
-  const bestPath = findBestPath(walls, units, startLocation, inRange)
-  console.log(`bestPath: ${JSON.stringify(bestPath)}`)
+  turn(walls, units)
+  console.log('-'.repeat(80))
+  turn(walls, units)
+  // const orderedUnits = readingOrder(units, u => u.location)
+  // const firstElf = units.find(u => u.type === ELF)
+  // const targets = findTargets(orderedUnits, firstElf).map(u => u.location)
+  // const inRange = findOpenSquaresInRange(walls, units, targets)
+  // const startLocation = firstElf.location
+  // const bestPath = findBestPath(walls, units, startLocation, inRange)
+  // console.log(`bestPath: ${JSON.stringify(bestPath)}`)
 }
 
-part1('Day15/test4.txt')
+part1('Day15/test2.txt')
